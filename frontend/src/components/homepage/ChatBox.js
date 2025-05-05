@@ -8,7 +8,7 @@ import { useSocketContext } from '../../context/SocketContext';
 
 const ChatBox = ({ toggle }) => {
 
-    const { socket } = useSocketContext();
+    const { socket, setSeenMessage} = useSocketContext();
     const { getMsg } = useGetMsg();
     const { sendMsg } = useSentMsg();
     const { authUser } = useAuthContext();
@@ -16,6 +16,48 @@ const ChatBox = ({ toggle }) => {
     const [messages, setMessages] = useState([]);
     const [newmsg, setNewmsg] = useState({ user: 'sent', message: '' });
     const messageEndRef = useRef(null);
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver((entries) => {
+            const updateMessages = [...messages];
+            const seenMessages = [];
+    
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const _id = entry.target.dataset.id;
+                    const index = updateMessages.findIndex((msg) => msg._id === _id);
+                    if (
+                        index !== -1 &&
+                        updateMessages[index].status !== 'seen' &&
+                        updateMessages[index].senderName === 'admin'
+                    ) {
+                        updateMessages[index].status = 'seen';
+                        seenMessages.push({ _id: updateMessages[index]._id });
+                    }
+                }
+            });
+    
+            if (seenMessages.length > 0) {
+                setSeenMessage(seenMessages)
+            }
+        }, {
+            root: containerRef.current,
+            threshold: 1.0,
+        });
+    
+        const timeout = setTimeout(() => {
+            const messageElements = containerRef.current.querySelectorAll('#message');
+            messageElements.forEach((el) => observer.observe(el));
+        }, 300); 
+    
+        return () => {
+            clearTimeout(timeout);
+            observer.disconnect();
+        };
+    }, [messages]);
+    
+
     useEffect(() => {
         if (authUser) {
             getMsg({ senderName: authUser.username, reciverName: 'admin' }).then((value) => {
@@ -95,8 +137,13 @@ const ChatBox = ({ toggle }) => {
     };
 
     useEffect(() => {
-        messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (containerRef.current) {
+            containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        }
     }, [messages]);
+    
+    
+    
 
     const formatDateHeader = (date) => {
         const messageDate = new Date(date);
@@ -132,7 +179,7 @@ const ChatBox = ({ toggle }) => {
 
             {authUser ? (
                 <>
-                    <div className="flex-grow overflow-y-auto p-[10px] mb-[50px] flex flex-col gap-[10px]">
+                    <div ref={containerRef} className="flex-grow overflow-y-auto p-[10px] mb-[50px] flex flex-col gap-[10px]">
                         {Array.isArray(messages) &&
                             messages.map((item, index) => {
                                 if (!item || typeof item !== "object") return null;
@@ -141,7 +188,7 @@ const ChatBox = ({ toggle }) => {
                                 const showDateHeader = messageDate !== lastDate;
                                 if (showDateHeader) lastDate = messageDate;
                                 return (
-                                    <>
+                                    <React.Fragment key={item._id}>
                                         {showDateHeader && (
                                             <div className="flex justify-center my-2">
                                                 <div className="bg-slate-400 rounded-md px-3 py-1 text-xs text-white">
@@ -149,7 +196,7 @@ const ChatBox = ({ toggle }) => {
                                                 </div>
                                             </div>
                                         )}
-                                        <div key={index} className={`p-[10px] rounded-[10px] max-w-[60%] flex justify-center items-center break-words mb-[10px] ${item.senderName === authUser.username ? "bg-[#007bff] text-white flex self-end justify-end items-center" : "bg-[#f1f1f1] text-black self-start flex justify-center items-center"}`}>
+                                        <div data-id={item._id} id='message' className={`p-[10px] rounded-[10px] max-w-[60%] flex justify-center items-center break-words mb-[10px] ${item.senderName === authUser.username ? "bg-[#007bff] text-white flex self-end justify-end items-center" : "bg-[#f1f1f1] text-black self-start flex justify-center items-center"}`}>
                                             <p>{item.message}</p>
                                             <span className='ml-3 text-[10px] mt-3'>{formatTime(item.createdAt)}</span>
                                             {item.senderName === authUser.username && (
@@ -161,7 +208,7 @@ const ChatBox = ({ toggle }) => {
                                             )}
 
                                         </div>
-                                    </>
+                                    </React.Fragment>
                                 );
                             })}
 

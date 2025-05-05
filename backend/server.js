@@ -7,7 +7,7 @@ const message = require('./routes/messages.js');
 const connectToMongodb = require('./db/connectToDB.js');
 const { app, server } = require('./socket.io/socket.js')
 const PORT = process.env.PORT || 5000;
-const pidusage = require('pidusage');
+// const pidusage = require('pidusage');
 const imageUpload = require('./routes/image.js')
 const path = require('path');
 

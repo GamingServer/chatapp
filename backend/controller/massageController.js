@@ -1,7 +1,7 @@
 const conversations = require('../modules/schema/conversation');
 const massageModul = require('../modules/schema/massage.modul');
 const userData = require('../modules/schema/userData');
-const { io, getAdminTocken, isInUserOnline, getSelectedUser, getOnlineUser } = require('../socket.io/socket')
+const { io, getAdminTocken, isInUserOnline, getSelectedUser, getOnlineUser ,seenMsg} = require('../socket.io/socket')
 const sendMassage = async (req, res) => {
     // try {
     const message = req.body;
@@ -54,25 +54,23 @@ const getMessage = async (req, res) => {
         const senderName = req.params.username;
         const receiverName = req.params.receiverName;
 
-        // Find the conversation between sender and receiver
         const conversation = await conversations.findOne({
             participants: { $all: [senderName, receiverName] },
-        }).populate("messages");  // Populate messages field
+        }).populate("messages");  
 
-        // Check if conversation exists
         if (!conversation) {
             return res.status(200).json({ noCon: "start conversation" });
         }
 
         const messages = conversation.messages;
-        for (let message of messages) {
-            if (message.receiverName == senderName) {
-                if (message.status != 'seen') {
-                    message.status = 'seen';
-                }
-            }
-            await message.save();
-        }
+        // for (let message of messages) {
+        //     if (message.receiverName == senderName) {
+        //         if (message.status != 'seen') {
+        //             message.status = 'seen';
+        //         }
+        //     }
+        //     await message.save();
+        // }
         res.status(200).json(messages);
 
     } catch (e) {
@@ -144,8 +142,6 @@ async function getLastMessagesForAdmin(adminUsername = 'admin') {
 const getLastMsg=async (req,res)=>{
     res.send(await getLastMessagesForAdmin());
 }
-
-
 module.exports = {
     getUserForAdmin,
     sendMassage,

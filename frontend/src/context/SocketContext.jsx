@@ -12,13 +12,14 @@ export const SocketContextProvider = ({ children }) => {
     const { authUser, isAdmin } = useAuthContext();
     const [selectedUser, setSelectedUser] = useState();
     const [lastMsg, setLastMsg] = useState();
+    const [seenMessages, setSeenMessage] = useState();
     const [isAdminOnline, setIsAdminOnline] = useState(false);
 
     useEffect(() => {
         setInterval(() => {
             if (isAdmin) {
                 fetch('http://localhost:8080/api/messages/last/msg').then((value) => {
-                    value.json().then((data)=>{
+                    value.json().then((data) => {
                         setLastMsg(data);
                     });
                 })
@@ -29,14 +30,27 @@ export const SocketContextProvider = ({ children }) => {
 
 
     useEffect(() => {
-        if (authUser) {
+        if (authUser || isAdmin) {
             const socket = io(`http://localhost:8080`);
-            socket.emit('join', authUser.username);
-            socket.on('admin-online', (value) => {
-                console.log(value)
-            })
-            setSocket(socket);
 
+            if (authUser && isAdmin) {
+                socket.emit('join', authUser.username);
+                socket.emit('join', 'admin')
+                socket.on('admin-online', (value) => {
+                    console.log(value)
+                })
+            } else if (authUser) {
+                socket.emit('join', authUser.username);
+                socket.on('admin-online', (value) => {
+                    console.log(value)
+                })
+            } else {
+                socket.emit('join', 'admin')
+                socket.on('new-user', (value) => {
+                    setAllUser(prev => [...prev, value])
+                })
+            }
+            setSocket(socket)
             return () => socket.close();
         } else {
             if (socket) {
@@ -44,31 +58,9 @@ export const SocketContextProvider = ({ children }) => {
                 setSocket(null);
             }
         }
-        if (isAdmin) {
-            const socket = io('http://localhost:8080');
-            socket.emit('join', "admin");
-            socket.on('new-user', (value) => {
-                setAllUser(prev => [...prev, value]);
-            });
-
-            socket.on('receiveMessage', (obj) => {
-                console.log("last msg", lastMsg)
-                console.log('obg', obj)
-                // setLastMsg(prevMessages=> prevMessages.map(msg=>{
-                //     if(msg.senderName === obj.senderName || obj.senderName === msg.reciverName){
-                //         return {...msg , message:obj.message}
-                //     }
-                //     return msg;
-                // }))
-            })
-
-            setSocket(null);
-            setSocket(socket);
-            return () => socket.close();
-        } else {
-
-        }
     }, [authUser, isAdmin]);
+
+
     useEffect(() => {
         if (selectedUser && isAdmin) {
             socket.emit('selectedUser', selectedUser)
@@ -81,5 +73,12 @@ export const SocketContextProvider = ({ children }) => {
         }
     }, [selectedUser])
 
-    return <SocketContext.Provider value={{ socket, setSelectedUser, selectedUser, allUser, setAllUser, isAdminOnline, lastMsg, setLastMsg }}>{children}</SocketContext.Provider>
+    useEffect(() => {
+        if (seenMessages) {
+            console.log(seenMessages)
+            socket.emit('seen-Message', seenMessages);
+        }
+    }, [seenMessages])
+
+    return <SocketContext.Provider value={{ seenMessages, setSeenMessage, socket, setSelectedUser, selectedUser, allUser, setAllUser, isAdminOnline, lastMsg, setLastMsg }}>{children}</SocketContext.Provider>
 }

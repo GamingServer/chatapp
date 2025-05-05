@@ -15,12 +15,25 @@ const RightMenu = ({ onBack }) => {
 
   const messageEndRef = useRef(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
+  const observerRef = useRef(null);
+  const messageRefs = useRef({});
 
+  useEffect(()=>{
+    observerRef.current = new IntersectionObserver((entries)=>{
+      entries.forEach((entry)=>{
+        if(entry.isIntersecting){
+          const messageId = Number(entry.target.dataset.id);
+          setMessages((prevMessages)=>prevMessages.map((msg)=>msg.id === messageId ? {...msg,status:'seen'}:msg))
+        }
+      })
+    },{root:document.qu})
+  },[])
 
   useEffect(() => {
     if (isAdmin) {
       getMsg({ senderName: 'admin', reciverName: selectedUser.name }).then((value) => {
         if (Array.isArray(value)) {
+          console.log(value)
           setMessages(value);
         } else {
           setMessages([]);

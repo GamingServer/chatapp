@@ -21,8 +21,10 @@ let selectedUser = null
 let onlineUser = [];
 
 const getAdminTocken = ({ id }) => {
+    console.log(user)
     return user.get(id);
 };
+
 
 const isInUserOnline = ({ id }) => {
     console.log(id)
@@ -38,6 +40,9 @@ const getOnlineUser = () => {
 }
 
 
+
+seenMsg = [];
+
 io.on('connection', async (socket) => {
     socket.on('join', (username) => {
         user.set(username, socket.id)
@@ -49,19 +54,16 @@ io.on('connection', async (socket) => {
 
     socket.on('selectedUser', (value) => {
         selectedUser = value;
-        socket.broadcast.emit('selectedUser',value)
+        socket.broadcast.emit('selectedUser', value)
     })
 
     socket.on('online-userName', (value) => {
         onlineUser.push(value)
-        socket.broadcast.emit('online-userName',value)
+        socket.broadcast.emit('online-userName', value)
     })
     socket.on('offline-userName', (value) => {
         onlineUser = onlineUser.filter(item => item != value)
     })
-
-
-
     socket.on('disconnect', () => {
         for (const [username, id] of user.entries()) {
             if (id === socket.id) {
@@ -80,4 +82,4 @@ io.on('connection', async (socket) => {
 });
 
 
-module.exports = { app, io, server, getOnlineUser, getAdminTocken, isInUserOnline, getSelectedUser }
+module.exports = { app, io, server, getOnlineUser, getAdminTocken, isInUserOnline, getSelectedUser, seenMsg }

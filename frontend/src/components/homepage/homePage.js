@@ -5,8 +5,8 @@ import ChatBox from './ChatBox'
 import { useSocketContext } from '../../context/SocketContext'
 import { useAuthContext } from '../../context/AuthContext'
 const HomePage = () => {
-  const {authUser} = useAuthContext();
-  const { socket } = useSocketContext();
+  // const {authUser} = useAuthContext();
+  // const { socket } = useSocketContext();
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -14,16 +14,16 @@ const HomePage = () => {
     
     setIsOpen(!isOpen);
   }
-  useEffect(()=>{
-    if (!socket || !authUser) return;
+  // useEffect(()=>{
+  //   if (!socket || !authUser) return;
 
-    if (isOpen ) {
-      socket.emit('online-userName',authUser.username)
-     }
-     else{
-      socket.emit('offline-userName',authUser.username)
-     }
-  },[isOpen,authUser])
+  //   if (isOpen ) {
+  //     socket.emit('online-userName',authUser.username)
+  //    }
+  //    else{
+  //     socket.emit('offline-userName',authUser.username)
+  //    }
+  // },[isOpen,authUser])
   return (
     <>
       <Navbar />

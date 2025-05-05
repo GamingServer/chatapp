@@ -1,10 +1,10 @@
-const { Server } = require('socket.io')
-const http = require('http');
 const express = require('express');
-const { console } = require('inspector');
-const app = express();
+const http = require('http');
+const { Server } = require('socket.io');
 
+const app = express();
 const server = http.createServer(app);
+const MessageDb = require('../modules/schema/massage.modul')
 const io = new Server(server, {
     cors: {
         origin: 'http://localhost:3000',
@@ -13,73 +13,81 @@ const io = new Server(server, {
 });
 
 
-// Example usage:
 const user = new Map();
 const msgID = new Map();
-let selectedUser = null
+let selectedUser = null;
+let onlineUsers = [];
+const seenMsg = [];
 
-let onlineUser = [];
+const getAdminToken = ({ id }) => {
+    return user.get(id);
+};
 
-const getAdminTocken = ({ id }) => {
-    console.log(user)
+const isUserOnline = ({ id }) => {
     return user.get(id);
 };
 
 
-const isInUserOnline = ({ id }) => {
-    console.log(id)
-    return user.get(id);
-}
 
-const getSelectedUser = () => {
-    return selectedUser;
-}
+const getSelectedUser = () => selectedUser;
 
-const getOnlineUser = () => {
-    return onlineUser;
-}
+const getOnlineUsers = () => onlineUsers;
 
-
-
-seenMsg = [];
-
-io.on('connection', async (socket) => {
+io.on('connection', (socket) => {
     socket.on('join', (username) => {
-        user.set(username, socket.id)
-        msgID.set(socket.id, username)
-        if (user.get('admin') || username == 'admin') {
-            socket.broadcast.emit('admin-online', true)
+        user.set(username, socket.id);
+        msgID.set(socket.id, username);
+
+        if (user.get('admin') || username === 'admin') {
+            socket.broadcast.emit('admin-online', true);
         }
-    })
+    });
 
     socket.on('selectedUser', (value) => {
         selectedUser = value;
-        socket.broadcast.emit('selectedUser', value)
-    })
+        socket.broadcast.emit('selectedUser', value);
+    });
 
-    socket.on('online-userName', (value) => {
-        onlineUser.push(value)
-        socket.broadcast.emit('online-userName', value)
-    })
-    socket.on('offline-userName', (value) => {
-        onlineUser = onlineUser.filter(item => item != value)
-    })
-    socket.on('disconnect', () => {
-        for (const [username, id] of user.entries()) {
-            if (id === socket.id) {
-                user.delete(username)
-                onlineUser = onlineUser.filter(item => item != username)
-                if (username == 'admin') {
-                    socket.broadcast.emit('admin-online', false)
-                    selectedUser = null
-                }
-                break
-            }
-
+    socket.on('online-userName', (username) => {
+        if (!onlineUsers.includes(username)) {
+            onlineUsers.push(username);
+            socket.broadcast.emit('online-userName', username);
         }
+    });
+
+    socket.on('offline-userName', (username) => {
+        onlineUsers = onlineUsers.filter(user => user !== username);
+    });
+    socket.on('seen-Message', async (value) => {
+        let user = []
+        value.map((item) => user.push(item._id))
+        const res = await MessageDb.updateMany({ _id: { $in: user } }, { $set: { status: 'seen' } })
+        socket.broadcast.emit('seen-Message',user)
     })
 
+    socket.on('disconnect', () => {
+        const username = msgID.get(socket.id);
+
+        if (username) {
+            user.delete(username);
+            msgID.delete(socket.id);
+            onlineUsers = onlineUsers.filter(user => user !== username);
+
+            if (username === 'admin') {
+                selectedUser = null;
+                socket.broadcast.emit('admin-online', false);
+            }
+        }
+    });
 });
 
-
-module.exports = { app, io, server, getOnlineUser, getAdminTocken, isInUserOnline, getSelectedUser, seenMsg }
+module.exports = {
+    app,
+    server,
+    io,
+    getOnlineUsers,
+    getAdminToken,
+    isUserOnline,
+    getSelectedUser,
+    seenMsg
+};

@@ -1,7 +1,7 @@
 const conversations = require('../modules/schema/conversation');
 const massageModul = require('../modules/schema/massage.modul');
 const userData = require('../modules/schema/userData');
-const { io, getAdminTocken, isInUserOnline, getSelectedUser, getOnlineUser ,seenMsg} = require('../socket.io/socket')
+const { io, getAdminToken, isUserOnline, getSelectedUser, getOnlineUsers} = require('../socket.io/socket')
 const sendMassage = async (req, res) => {
     // try {
     const message = req.body;
@@ -19,10 +19,10 @@ const sendMassage = async (req, res) => {
         })
     }
 
-    if (isInUserOnline({ id: receiverName })) {
+    if (isUserOnline({ id: receiverName })) {
         if (getSelectedUser() == senderName) {
             status = 'seen'
-        } else if (getOnlineUser().includes(receiverName)) {
+        } else if (getOnlineUsers().includes(receiverName)) {
             status = 'seen'
         }
         else {
@@ -40,7 +40,7 @@ const sendMassage = async (req, res) => {
         conversation.messages.push(newMessage._id);
         await Promise.all([conversation.save(), newMessage.save()])
 
-        const token = getAdminTocken({ id: receiverName })
+        const token = getAdminToken({ id: receiverName })
         await io.to(token).emit('receiveMessage', { message: newMessage })
         res.send(newMessage);
 

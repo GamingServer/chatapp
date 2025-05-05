@@ -8,21 +8,22 @@ import { useSocketContext } from '../../context/SocketContext';
 
 const ChatBox = ({ toggle }) => {
 
-    const { socket, setSeenMessage} = useSocketContext();
+    const { socket, setSeenMessage } = useSocketContext();
     const { getMsg } = useGetMsg();
     const { sendMsg } = useSentMsg();
     const { authUser } = useAuthContext();
-    const [selectedUser, setSelectedUser] = useState();
+    // const [selectedUser, setSelectedUser] = useState();
     const [messages, setMessages] = useState([]);
     const [newmsg, setNewmsg] = useState({ user: 'sent', message: '' });
     const messageEndRef = useRef(null);
     const containerRef = useRef(null);
+    let selectedUser;
 
     useEffect(() => {
         const observer = new IntersectionObserver((entries) => {
             const updateMessages = [...messages];
             const seenMessages = [];
-    
+
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
                     const _id = entry.target.dataset.id;
@@ -37,7 +38,7 @@ const ChatBox = ({ toggle }) => {
                     }
                 }
             });
-    
+
             if (seenMessages.length > 0) {
                 setSeenMessage(seenMessages)
             }
@@ -45,18 +46,18 @@ const ChatBox = ({ toggle }) => {
             root: containerRef.current,
             threshold: 1.0,
         });
-    
+
         const timeout = setTimeout(() => {
             const messageElements = containerRef.current.querySelectorAll('#message');
             messageElements.forEach((el) => observer.observe(el));
-        }, 300); 
-    
+        }, 300);
+
         return () => {
             clearTimeout(timeout);
             observer.disconnect();
         };
     }, [messages]);
-    
+
 
     useEffect(() => {
         if (authUser) {
@@ -103,7 +104,7 @@ const ChatBox = ({ toggle }) => {
                 ]);
             });
             socket.on('selectedUser', (value) => {
-                setSelectedUser(value);
+                selectedUser = value;
             })
 
             return () => {
@@ -141,9 +142,9 @@ const ChatBox = ({ toggle }) => {
             containerRef.current.scrollTop = containerRef.current.scrollHeight;
         }
     }, [messages]);
-    
-    
-    
+
+
+
 
     const formatDateHeader = (date) => {
         const messageDate = new Date(date);

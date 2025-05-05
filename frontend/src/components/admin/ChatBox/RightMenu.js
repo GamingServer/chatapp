@@ -15,25 +15,52 @@ const RightMenu = ({ onBack }) => {
 
   const messageEndRef = useRef(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
-  const observerRef = useRef(null);
-  const messageRefs = useRef({});
 
-  useEffect(()=>{
-    observerRef.current = new IntersectionObserver((entries)=>{
-      entries.forEach((entry)=>{
-        if(entry.isIntersecting){
-          const messageId = Number(entry.target.dataset.id);
-          setMessages((prevMessages)=>prevMessages.map((msg)=>msg.id === messageId ? {...msg,status:'seen'}:msg))
-        }
-      })
-    },{root:document.qu})
-  },[])
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+          const observer = new IntersectionObserver((entries) => {
+              const updateMessages = [...messages];
+              const seenMessages = [];
+  
+              entries.forEach((entry) => {
+                  if (entry.isIntersecting) {
+                      const _id = entry.target.dataset.id;
+                      const index = updateMessages.findIndex((msg) => msg._id === _id);
+                      if (
+                          index !== -1 &&
+                          updateMessages[index].status !== 'seen' &&
+                          updateMessages[index].senderName !== 'admin'
+                      ) {
+                          updateMessages[index].status = 'seen';
+                          seenMessages.push({ _id: updateMessages[index]._id });
+                      }
+                  }
+              });
+  
+              if (seenMessages.length > 0) {
+                socket.emit('seen-Message',seenMessages)
+              }
+          }, {
+              root: containerRef.current,
+              threshold: 1.0,
+          });
+  
+          const timeout = setTimeout(() => {
+              const messageElements = containerRef.current.querySelectorAll('#message');
+              messageElements.forEach((el) => observer.observe(el));
+          }, 300);
+  
+          return () => {
+              clearTimeout(timeout);
+              observer.disconnect();
+          };
+      }, [messages]);
 
   useEffect(() => {
     if (isAdmin) {
       getMsg({ senderName: 'admin', reciverName: selectedUser.name }).then((value) => {
         if (Array.isArray(value)) {
-          console.log(value)
           setMessages(value);
         } else {
           setMessages([]);
@@ -62,6 +89,15 @@ const RightMenu = ({ onBack }) => {
           );
         }
       }
+    });
+    socket.on('seen-Message', (value) => {
+      setMessages(prevMessages =>
+        prevMessages.map(msg =>
+          value.includes(msg._id)
+            ? { ...msg, status: 'seen' }
+            : msg
+        )
+      );
     });
 
     return () => {
@@ -103,8 +139,11 @@ const RightMenu = ({ onBack }) => {
   };
 
   useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [newmsg, messages]);
+          if (containerRef.current) {
+              containerRef.current.scrollTop = containerRef.current.scrollHeight;
+          }
+      }, [messages]);
+  
 
   const formatTime = (isoString) => {
     const date = new Date(isoString);
@@ -142,19 +181,19 @@ const RightMenu = ({ onBack }) => {
           ← Back
         </button>
         <h2 className="text-[30px] mx-auto md:mx-0 pt-0">{selectedUser.name}</h2>
-        <button className='' onClick={()=>setShowUserDetails(true)}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M20.75 7a.75.75 0 0 1-.75.75H4a.75.75 0 0 1 0-1.5h16a.75.75 0 0 1 .75.75m0 5a.75.75 0 0 1-.75.75H4a.75.75 0 0 1 0-1.5h16a.75.75 0 0 1 .75.75m0 5a.75.75 0 0 1-.75.75H4a.75.75 0 0 1 0-1.5h16a.75.75 0 0 1 .75.75" clip-rule="evenodd" /></svg>
+        <button className='' onClick={() => setShowUserDetails(true)}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" fillRule="evenodd" d="M20.75 7a.75.75 0 0 1-.75.75H4a.75.75 0 0 1 0-1.5h16a.75.75 0 0 1 .75.75m0 5a.75.75 0 0 1-.75.75H4a.75.75 0 0 1 0-1.5h16a.75.75 0 0 1 .75.75m0 5a.75.75 0 0 1-.75.75H4a.75.75 0 0 1 0-1.5h16a.75.75 0 0 1 .75.75" clipRule="evenodd" /></svg>
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto flex flex-col gap-3 px-4">
+      <div ref={containerRef}className="flex-1 overflow-y-auto flex flex-col gap-3 px-4">
         {messages.map((item, index) => {
           const messageDate = new Date(item.createdAt).toDateString();
           const showDateHeader = messageDate !== lastDate;
           if (showDateHeader) lastDate = messageDate;
 
           return (
-            <React.Fragment key={index}>
+            <React.Fragment key={item._id}>
               {showDateHeader && (
                 <div className="flex justify-center my-2">
                   <div className="bg-slate-400 rounded-md px-3 py-1 text-xs text-white">
@@ -162,10 +201,10 @@ const RightMenu = ({ onBack }) => {
                   </div>
                 </div>
               )}
-              <div
+              <div data-id={item._id} id='message'
                 className={`${item.senderName !== selectedUser.name
-                    ? 'bg-[#007bff] text-white rounded-[10px] px-[10px] pt-[5px] max-w-[60%] self-end flex flex-col gap-[2px]'
-                    : 'bg-[#696b6e] text-white rounded-[10px] max-w-[60%] self-start pt-[5px] px-[10px]'
+                  ? 'bg-[#007bff] text-white rounded-[10px] px-[10px] pt-[5px] max-w-[60%] self-end flex flex-col gap-[2px]'
+                  : 'bg-[#696b6e] text-white rounded-[10px] max-w-[60%] self-start pt-[5px] px-[10px]'
                   }`}
               >
                 <p className="flex flex-row gap-[20px] text-lg">
@@ -206,34 +245,34 @@ const RightMenu = ({ onBack }) => {
         </button>
       </div>
       {showUserDetails && (
-  <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-end z-50">
-    <div className="w-72 bg-white h-full shadow-xl p-4 relative">
-      <button
-        className="absolute top-2 right-2 text-red-500 text-lg"
-        onClick={() => setShowUserDetails(false)}
-      >
-        ×
-      </button>
-      <h2 className="text-xl font-semibold mb-4">User Details</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-end z-50">
+          <div className="w-72 bg-white h-full shadow-xl p-4 relative">
+            <button
+              className="absolute top-2 right-2 text-red-500 text-lg"
+              onClick={() => setShowUserDetails(false)}
+            >
+              ×
+            </button>
+            <h2 className="text-xl font-semibold mb-4">User Details</h2>
 
-      {selectedUser.image && (
-        <div className="mb-4 flex justify-center">
-          <img
-            src={selectedUser.image}
-            alt="User"
-            className="w-24 h-24 rounded-full border object-cover"
-          />
+            {selectedUser.image && (
+              <div className="mb-4 flex justify-center">
+                <img
+                  src={selectedUser.image}
+                  alt="User"
+                  className="w-24 h-24 rounded-full border object-cover"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2 text-sm">
+              <p><strong>Name:</strong> {selectedUser.name}</p>
+              <p><strong>Email:</strong> {selectedUser.email}</p>
+              <p><strong>Phone:</strong> {selectedUser.phone || 'N/A'}</p>
+            </div>
+          </div>
         </div>
       )}
-
-      <div className="space-y-2 text-sm">
-        <p><strong>Name:</strong> {selectedUser.name}</p>
-        <p><strong>Email:</strong> {selectedUser.email}</p>
-        <p><strong>Phone:</strong> {selectedUser.phone || 'N/A'}</p>
-      </div>
-    </div>
-  </div>
-)}
 
 
     </div>

@@ -42,7 +42,6 @@ export const SocketContextProvider = ({ children }) => {
             } else if (authUser) {
                 socket.emit('join', authUser.username);
                 socket.on('admin-online', (value) => {
-                    console.log(value)
                 })
             } else {
                 socket.emit('join', 'admin')
@@ -75,7 +74,6 @@ export const SocketContextProvider = ({ children }) => {
 
     useEffect(() => {
         if (seenMessages) {
-            console.log(seenMessages)
             socket.emit('seen-Message', seenMessages);
         }
     }, [seenMessages])

@@ -17,6 +17,10 @@ const userData = new mongoose.Schema({
     image:{
         type:String,
         defalut:'https://avatar.iran.liara.run/public/boy'
+    },
+    online:{
+        type:Boolean,
+        default:false
     }
 })
 

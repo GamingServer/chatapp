@@ -1,103 +1,102 @@
 const conversations = require('../modules/schema/conversation');
 const massageModul = require('../modules/schema/massage.modul');
 const userData = require('../modules/schema/userData');
-const { io, getAdminToken, isUserOnline, getSelectedUser, getOnlineUsers} = require('../socket.io/socket')
+const { io, getAdminToken, isUserOnline, getSelectedUser, getOnlineUsers } = require('../socket.io/socket')
+const path = require('path')
 const sendMassage = async (req, res) => {
-    // try {
-    const message = req.body;
-    const senderName = req.params.username;
-    const receiverName = req.params.receiverName;
-    let status = req.params.status;
+  // try {
+  const message = req.body;
+  const senderName = req.params.username;
+  const receiverName = req.params.receiverName;
+  let status = req.params.status;
 
-    let conversation = await conversations.findOne({
-        participants: { $all: [senderName, receiverName] },
+  let conversation = await conversations.findOne({
+    participants: { $all: [senderName, receiverName] },
+  })
+
+  if (!conversation) {
+    conversation = await conversations.create({
+      participants: [senderName, receiverName],
     })
+  }
 
-    if (!conversation) {
-        conversation = await conversations.create({
-            participants: [senderName, receiverName],
-        })
+  if (isUserOnline({ id: receiverName })) {
+    if (getSelectedUser() == senderName) {
+      status = 'seen'
+    } else if (getOnlineUsers().includes(receiverName)) {
+      status = 'seen'
     }
-
-    if (isUserOnline({ id: receiverName })) {
-        if (getSelectedUser() == senderName) {
-            status = 'seen'
-        } else if (getOnlineUsers().includes(receiverName)) {
-            status = 'seen'
-        }
-        else {
-            status = 'delivered'
-        }
+    else {
+      status = 'delivered'
     }
-    const newMessage = new massageModul({
-        senderName,
-        receiverName,
-        message: message.message,
-        status: status
-    })
+  }
+  const newMessage = new massageModul({
+    senderName,
+    receiverName,
+    message: message.message,
+    status: status
+  })
 
-    if (newMessage) {
-        conversation.messages.push(newMessage._id);
-        await Promise.all([conversation.save(), newMessage.save()])
+  if (newMessage) {
+    conversation.messages.push(newMessage._id);
+    await Promise.all([conversation.save(), newMessage.save()])
 
-        const token = getAdminToken({ id: receiverName })
-        await io.to(token).emit('receiveMessage', { message: newMessage })
-        res.send(newMessage);
+    const token = getAdminToken({ id: receiverName })
+    await io.to(token).emit('receiveMessage', { message: newMessage })
+    res.send(newMessage);
 
-    }
+  }
 
 
 }
 
 const getMessage = async (req, res) => {
-    try {
-        const senderName = req.params.username;
-        const receiverName = req.params.receiverName;
-
-        const conversation = await conversations.findOne({
-            participants: { $all: [senderName, receiverName] },
-        }).populate("messages");  
-
-        if (!conversation) {
-            return res.status(200).json({ noCon: "start conversation" });
-        }
-
-        const messages = conversation.messages;
-        // for (let message of messages) {
-        //     if (message.receiverName == senderName) {
-        //         if (message.status != 'seen') {
-        //             message.status = 'seen';
-        //         }
-        //     }
-        //     await message.save();
-        // }
-        res.status(200).json(messages);
-
-    } catch (e) {
-        console.log("Error in getMessage controller:", e);
-        res.status(500).json({ error: "Internal server error" });
+  try {
+    const senderName = req.params.username;
+    const receiverName = req.params.receiverName;
+    const conversation = await conversations.findOne({
+      participants: { $all: [senderName, receiverName] },
+    }).populate("messages");
+    if (!conversation) {
+      return res.status(200).json({ noCon: "start conversation" });
     }
+
+    const messages = conversation.messages;
+    // for (let message of messages) {
+    //     if (message.receiverName == senderName) {
+    //         if (message.status != 'seen') {
+    //             message.status = 'seen';
+    //         }
+    //     }
+    //     await message.save();
+    // }
+    res.status(200).json(messages);
+
+  } catch (e) {
+    console.log("Error in getMessage controller:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 const getUserForAdmin = async (req, res) => {
-    try {
-        const data = await userData.find();
+  try {
+    const data = await userData.find();
 
-        const users = data.map((item) => {
-            const username = item.username;
-            return { name: username , email:item.email , phoneNumber:item.phoneNumber,image : item.image };
-        });
+    const users = data.map((item) => {
+      const username = item.username;
+      return { name: username, email: item.email, phoneNumber: item.phoneNumber, image: item.image };
+    });
 
-        res.status(200).json(users);
-    } catch (e) {
-        console.log("error in getUserForAdmin controller", e);
-        res.status(500).json({ error: "internal server error" });
-    }
+    res.status(200).json(users);
+  } catch (e) {
+    console.log("error in getUserForAdmin controller", e);
+    res.status(500).json({ error: "internal server error" });
+  }
 };
 
 const getAllUserMsg = async (req, res) => {
-    const conversation = await conversations.find().populate('messages')
-    res.json(conversation);
+  const conversation = await conversations.find().populate('messages')
+  res.json(conversation);
 }
 
 
@@ -139,13 +138,121 @@ async function getLastMessagesForAdmin(adminUsername = 'admin') {
   return lastMessages;
 }
 
-const getLastMsg=async (req,res)=>{
-    res.send(await getLastMessagesForAdmin());
+const getLastMsg = async (req, res) => {
+  res.send(await getLastMessagesForAdmin());
 }
+
+
+const multer = require('multer')
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, './backend/uploads/');
+  },
+  filename: function (req, file, cb) {
+    const senderName = req.params.senderName;
+    const reciverName = req.params.receiverName;
+    const timestamp = Date.now();
+    const ext = path.extname(file.originalname);
+    cb(null, `${senderName}_${reciverName}_${timestamp}${ext}`);
+  }
+})
+const upload = multer({ storage })
+
+const saveImage = async (req, res) => {
+  try {
+    const { senderName, receiverName } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const fileUrl = `/uploads/${req.file.filename}`;
+
+    const newMessage = new massageModul({
+      senderName,
+      receiverName,
+      message: fileUrl,
+      status: 'sent',
+      type: 'image'
+    });
+
+    const data = await newMessage.save();
+
+    let conversation = await conversations.findOne({
+      participants: { $all: [senderName, receiverName] },
+    });
+
+    if (!conversation) {
+      conversation = await conversations.create({
+        participants: [senderName, receiverName],
+      });
+    }
+
+    conversation.messages.push(newMessage._id);
+    await conversation.save();
+
+    const token = getAdminToken({ id: receiverName });
+    await io.to(token).emit('receiveMessage', { message: newMessage });
+
+    res.status(200).json(data);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const saveVideo = async (req, res) => {
+  try {
+    const { senderName, receiverName } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const fileUrl = `/uploads/${req.file.filename}`;
+
+    const newMessage = new massageModul({
+      senderName,
+      receiverName,
+      message: fileUrl,
+      status: 'sent',
+      type: 'video'
+    });
+
+    const data = await newMessage.save();
+
+    let conversation = await conversations.findOne({
+      participants: { $all: [senderName, receiverName] },
+    });
+
+    if (!conversation) {
+      conversation = await conversations.create({
+        participants: [senderName, receiverName],
+      });
+    }
+
+    conversation.messages.push(newMessage._id);
+    await conversation.save();
+
+    const token = getAdminToken({ id: receiverName });
+    await io.to(token).emit('receiveMessage', { message: newMessage });
+
+    res.status(200).json(data);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+
 module.exports = {
-    getUserForAdmin,
-    sendMassage,
-    getMessage,
-    getAllUserMsg,
-    getLastMsg
+  getUserForAdmin,
+  sendMassage,
+  getMessage,
+  getAllUserMsg,
+  getLastMsg,
+  saveImage,
+  saveVideo,
+  upload
 }

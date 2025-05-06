@@ -27,8 +27,6 @@ const isUserOnline = ({ id }) => {
     return user.get(id);
 };
 
-
-
 const getSelectedUser = () => selectedUser;
 
 const getOnlineUsers = () => onlineUsers;
@@ -37,10 +35,12 @@ io.on('connection', (socket) => {
     socket.on('join', (username) => {
         user.set(username, socket.id);
         msgID.set(socket.id, username);
-
+        
         if (user.get('admin') || username === 'admin') {
             socket.broadcast.emit('admin-online', true);
         }
+
+
     });
 
     socket.on('selectedUser', (value) => {
@@ -60,6 +60,7 @@ io.on('connection', (socket) => {
     });
     socket.on('seen-Message', async (value) => {
         let user = []
+        console.log(value)
         value.map((item) => user.push(item._id))
         const res = await MessageDb.updateMany({ _id: { $in: user } }, { $set: { status: 'seen' } })
         socket.broadcast.emit('seen-Message',user)

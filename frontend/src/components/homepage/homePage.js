@@ -16,7 +16,6 @@ const HomePage = () => {
   }
   // useEffect(()=>{
   //   if (!socket || !authUser) return;
-
   //   if (isOpen ) {
   //     socket.emit('online-userName',authUser.username)
   //    }
@@ -27,7 +26,7 @@ const HomePage = () => {
   return (
     <>
       <Navbar />
-      {isOpen && <ChatBox toggle={toggle} />}
+      {isOpen && <ChatBox toggle={toggle}/>}
       {!isOpen && <FlottingButton toggle={toggle} />}
     </>
   )

@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const UserSchema = require('../modules/schema/userData')
-const { io, getAdminTocken } = require('../socket.io/socket')
+const { io, getAdminToken } = require('../socket.io/socket')
 router.post('/userForm', async (req, res) => {
     const username = req.body?.username;
     const email = req.body?.email;
@@ -22,7 +22,7 @@ router.post('/userForm', async (req, res) => {
         }
         try {
             await user.save();
-            const token = await getAdminTocken('admin')
+            const token = await getAdminToken('admin')
             io.to(token).emit('new-user', { name: user.username });
         } catch (e) {
             console.log(e)

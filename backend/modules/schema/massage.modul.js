@@ -16,7 +16,10 @@ const schema = mongoose.Schema({
     status: {
         type:String,
         default:'sent'
-    } 
+    },
+    type:{
+        type:String,
+    }
 
 },{timestamps:true});
 

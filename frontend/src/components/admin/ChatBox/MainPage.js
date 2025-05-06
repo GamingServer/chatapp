@@ -74,7 +74,7 @@ const MainPage = () => {
               >
                 {/* User Image */}
                 <img
-                  src={user.image || 'https://avatar.iran.liara.run/public/boy'}
+                  src={user.image || 'https://avatar.iran.liara.run/public/boy/hello'}
                   alt="User"
                   className="w-10 h-10 rounded-full object-cover border"
                 />
@@ -87,7 +87,7 @@ const MainPage = () => {
                     </h2>
                   </div>
                   <h4 className="text-xs text-gray-500">
-                    {lastMessage ? lastMessage.message : 'No message yet'}
+                    {lastMessage ? lastMessage.type == 'image' || lastMessage.type == 'video' ? lastMessage.type == 'image' ? 'image' : 'video' : lastMessage.message : 'No message yet'}
                   </h4>
                 </div>
               </div>

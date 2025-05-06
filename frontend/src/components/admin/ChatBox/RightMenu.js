@@ -2,23 +2,74 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useAuthContext } from '../../../context/AuthContext';
 import useGetMsg from '../../../hooks/useGetMsg';
 import { useSocketContext } from '../../../context/SocketContext';
+import Picker from '@emoji-mart/react';
+import emojiRegex from 'emoji-regex';
+
+// import 'emoji-mart/css/emoji-mart.css';
 
 const RightMenu = ({ onBack }) => {
   const { selectedUser, socket, setLastMsg, setSeenMessage } = useSocketContext();
   const { getMsg } = useGetMsg();
   const { isAdmin } = useAuthContext();
+
   const [messages, setMessages] = useState([]);
-  const [newmsg, setNewmsg] = useState({
-    user: 'sent',
-    message: '',
-  });
-
-  const imageUrl = <img src={selectedUser.image} alt="Admin avatar" className="w-6 h-6 rounded-full" />
-
-  const messageEndRef = useRef(null);
+  const [newmsg, setNewmsg] = useState({ user: 'sent', message: '' });
+  const [fullMedia, setFullMedia] = useState({ type: '', url: '' });
+  const [showDrawer, setShowDrawer] = useState(false);
   const [showUserDetails, setShowUserDetails] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  const fileInputRef = useRef(null);
+  const videoInputRef = useRef(null);
   const containerRef = useRef(null);
+  const messageEndRef = useRef(null);
+
+  const renderMessageWithEmojis = (message) => {
+    const regex = emojiRegex();
+    const parts = [];
+    let lastIndex = 0;
+
+    for (const match of message.matchAll(regex)) {
+      const { index } = match;
+      if (index > lastIndex) {
+        parts.push(<span key={lastIndex}>{message.slice(lastIndex, index)}</span>);
+      }
+      parts.push(
+        <span key={index} className="text-2xl inline-block align-middle">{match[0]}</span>
+      );
+      lastIndex = index + match[0].length;
+    }
+
+    if (lastIndex < message.length) {
+      parts.push(<span key={lastIndex}>{message.slice(lastIndex)}</span>);
+    }
+
+    return parts;
+  };
+
+
+  let imageUrl = <img src={selectedUser.image} alt="Admin avatar" className="w-6 h-6 rounded-full" />;
+
+  const handleAttachClick = () => setShowDrawer(prev => !prev);
+
+  const handleFileChange = async (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch(`http://localhost:8080/api/messages/upload/${type}/admin/${selectedUser.name}`, {
+        method: 'POST',
+        body: formData
+      });
+      if (!res.ok) throw new Error('Failed to upload file');
+      const data = await res.json();
+      setMessages(prev => [...prev, data]);
+      setShowDrawer(false);
+    } catch (e) {
+      alert(e);
+    }
+  };
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -41,7 +92,7 @@ const RightMenu = ({ onBack }) => {
       });
 
       if (seenMessages.length > 0) {
-        setSeenMessage(seenMessages)
+        setSeenMessage(seenMessages);
       }
     }, {
       root: containerRef.current,
@@ -49,7 +100,7 @@ const RightMenu = ({ onBack }) => {
     });
 
     const timeout = setTimeout(() => {
-      const messageElements = containerRef.current.querySelectorAll('#message');
+      const messageElements = containerRef.current.querySelectorAll('[data-id]');
       messageElements.forEach((el) => observer.observe(el));
     }, 300);
 
@@ -72,26 +123,24 @@ const RightMenu = ({ onBack }) => {
   }, [selectedUser]);
 
   useEffect(() => {
-    socket.on('receiveMessage', ({ message, status }) => {
+    socket.on('receiveMessage', ({ message }) => {
       if (message.senderName === selectedUser.name) {
         setMessages((prevMessages) => [...prevMessages, message]);
       }
     });
 
     socket.on('online-userName', (value) => {
-      if (selectedUser) {
-        if (selectedUser.name === value) {
-          setMessages((prevMessages) =>
-            prevMessages.map((msg) => {
-              if (!msg || typeof msg !== 'object') return msg;
-              return msg.status === 'sent' || msg.status === 'delivered'
-                ? { ...msg, status: 'seen' }
-                : msg;
-            })
-          );
-        }
+      if (selectedUser && selectedUser.name === value) {
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) =>
+            msg.status === 'sent' || msg.status === 'delivered'
+              ? { ...msg, status: 'seen' }
+              : msg
+          )
+        );
       }
     });
+
     socket.on('seen-Message', (value) => {
       setMessages(prevMessages =>
         prevMessages.map(msg =>
@@ -118,21 +167,18 @@ const RightMenu = ({ onBack }) => {
         `http://localhost:8080/api/messages/sendmsg/admin/${selectedUser.name}`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(messageToSend),
         }
       );
       const data = await res.json();
       setNewmsg({ ...newmsg, message: '' });
       setLastMsg((prevMessages) =>
-        prevMessages.map((msg) => {
-          if (selectedUser.name === msg.senderName || selectedUser.name === msg.receiverName) {
-            return { ...msg, message: data.message };
-          }
-          return msg;
-        })
+        prevMessages.map((msg) =>
+          selectedUser.name === msg.senderName || selectedUser.name === msg.receiverName
+            ? { ...msg, message: data.message }
+            : msg
+        )
       );
       setMessages([...messages, data]);
     } else {
@@ -146,7 +192,6 @@ const RightMenu = ({ onBack }) => {
     }
   }, [messages]);
 
-
   const formatTime = (isoString) => {
     const date = new Date(isoString);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -158,11 +203,8 @@ const RightMenu = ({ onBack }) => {
     const yesterday = new Date();
     yesterday.setDate(today.getDate() - 1);
 
-    const isToday = messageDate.toDateString() === today.toDateString();
-    const isYesterday = messageDate.toDateString() === yesterday.toDateString();
-
-    if (isToday) return 'Today';
-    if (isYesterday) return 'Yesterday';
+    if (messageDate.toDateString() === today.toDateString()) return 'Today';
+    if (messageDate.toDateString() === yesterday.toDateString()) return 'Yesterday';
 
     return messageDate.toLocaleDateString(undefined, {
       year: 'numeric',
@@ -171,25 +213,36 @@ const RightMenu = ({ onBack }) => {
     });
   };
 
+  const addEmoji = (emoji) => {
+    if (!emoji?.unified) return;
+
+    const emojiCode = emoji.unified.split('-').map((el) => `0x${el}`);
+    const emojiChar = String.fromCodePoint(...emojiCode);
+
+    setNewmsg((prev) => ({
+      ...prev,
+      message: prev.message + emojiChar,
+    }));
+  };
+
+
+
   let lastDate = null;
 
   return (
     <div className="w-full h-full flex flex-col">
-      <div className="h-[10%] w-full flex justify-between items-center border-b-2 border-black px-4 md:justify-between md:items-center ">
-        <button
-          className="md:hidden text-blue-600 font-semibold"
-          onClick={onBack}
-        >
-          ← Back
-        </button>
+      {/* Header */}
+      <div className="h-[10%] w-full flex justify-between items-center border-b-2 border-black px-4">
+        <button className="md:hidden text-blue-600 font-semibold" onClick={onBack}>← Back</button>
         <h2 className="text-[30px] mx-auto md:mx-0 pt-0">{selectedUser.name}</h2>
-        <button className='' onClick={() => setShowUserDetails(true)}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" fillRule="evenodd" d="M20.75 7a.75.75 0 0 1-.75.75H4a.75.75 0 0 1 0-1.5h16a.75.75 0 0 1 .75.75m0 5a.75.75 0 0 1-.75.75H4a.75.75 0 0 1 0-1.5h16a.75.75 0 0 1 .75.75m0 5a.75.75 0 0 1-.75.75H4a.75.75 0 0 1 0-1.5h16a.75.75 0 0 1 .75.75" clipRule="evenodd" /></svg>
+        <button onClick={() => setShowUserDetails(true)}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path fill="currentColor" d="M20.75 7a.75.75 0 0 1-.75.75H4a.75.75 0 0 1 0-1.5h16a.75.75 0 0 1 .75.75m0 5a.75.75 0 0 1-.75.75H4a.75.75 0 0 1 0-1.5h16a.75.75 0 0 1 .75.75m0 5a.75.75 0 0 1-.75.75H4a.75.75 0 0 1 0-1.5h16a.75.75 0 0 1 .75.75" /></svg>
         </button>
       </div>
 
+      {/* Chat Body */}
       <div ref={containerRef} className="flex-1 overflow-y-auto flex flex-col gap-3 px-4">
-        {messages.map((item, index) => {
+        {messages.map((item) => {
           const messageDate = new Date(item.createdAt).toDateString();
           const showDateHeader = messageDate !== lastDate;
           if (showDateHeader) lastDate = messageDate;
@@ -204,23 +257,17 @@ const RightMenu = ({ onBack }) => {
                 </div>
               )}
 
-              <div
-                data-id={item._id}
-                id={`message-${item._id}`}
-                className={`flex items-end min-w-[40%] gap-2 ${item.senderName === 'admin' ? 'self-end flex-row-reverse' : 'self-start'
-                  }`}
-              >
-                {item.senderName !== 'admin' && (
-                  imageUrl
-                )}
+              <div data-id={item._id} className={`flex items-end min-w-[40%] gap-2 ${item.senderName === 'admin' ? 'self-end flex-row-reverse' : 'self-start'}`}>
+                {item.senderName !== 'admin' && imageUrl}
 
-                <div
-                  className={`${item.senderName === 'admin'
-                      ? 'bg-[#007bff] text-white'
-                      : 'bg-[#e4e6eb] text-black'
-                    } rounded-[10px] px-3 py-2 max-w-[60%] min-w-[30%]`}
-                >
-                  <p className="text-sm">{item.message}</p>
+                <div className={`${item.senderName === 'admin' ? 'bg-[#007bff] text-white' : 'bg-[#e4e6eb] text-black'} rounded-[10px] px-3 py-2 max-w-[100%] min-w-[30%]`}>
+                  {item.type === 'image' ? (
+                    <img src={`http://localhost:8080${item.message}`} alt="sent" className="w-48 h-48 object-cover cursor-pointer rounded" onClick={() => setFullMedia({ type: 'image', url: `http://localhost:8080${item.message}` })} />
+                  ) : item.type === 'video' ? (
+                    <video src={`http://localhost:8080${item.message}`} controls className="w-64 h-48 rounded cursor-pointer" onClick={() => setFullMedia({ type: 'video', url: `http://localhost:8080${item.message}` })} />
+                  ) : (
+                    <p className="text-sm break-words">{renderMessageWithEmojis(item.message)}</p>
+                  )}
                   <span className="text-[10px] block text-right whitespace-nowrap">
                     <time dateTime={item.createdAt}>{formatTime(item.createdAt)}</time>
                     {item.senderName === 'admin' && (
@@ -233,60 +280,70 @@ const RightMenu = ({ onBack }) => {
                   </span>
                 </div>
               </div>
-
             </React.Fragment>
           );
         })}
         <div ref={messageEndRef} />
       </div>
 
-      <div className="border-t p-2 flex gap-2">
-        <input
-          type="text"
-          className="flex-1 border-2 border-black rounded-lg p-2"
-          value={newmsg.message}
-          placeholder="Type your message here..."
-          onChange={(e) => setNewmsg({ ...newmsg, message: e.target.value })}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handleInput();
-            }
-          }}
-        />
-        <button onClick={handleInput} className="w-[80px] bg-blue-500 text-white rounded-lg">
-          Send
-        </button>
-      </div>
-      {showUserDetails && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-end z-50">
-          <div className="w-72 bg-white h-full shadow-xl p-4 relative">
-            <button
-              className="absolute top-2 right-2 text-red-500 text-lg"
-              onClick={() => setShowUserDetails(false)}
-            >
-              ×
-            </button>
-            <h2 className="text-xl font-semibold mb-4">User Details</h2>
-
-            {selectedUser.image && (
-              <div className="mb-4 flex justify-center">
-                <img
-                  src={selectedUser.image}
-                  alt="User"
-                  className="w-24 h-24 rounded-full border object-cover"
-                />
-              </div>
-            )}
-
-            <div className="space-y-2 text-sm">
-              <p><strong>Name:</strong> {selectedUser.name}</p>
-              <p><strong>Email:</strong> {selectedUser.email}</p>
-              <p><strong>Phone:</strong> {selectedUser.phone || 'N/A'}</p>
-            </div>
-          </div>
+      {/* Full Media Modal */}
+      {fullMedia.url && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50" onClick={() => setFullMedia({ type: '', url: '' })}>
+          {fullMedia.type === 'image' ? (
+            <img src={fullMedia.url} alt="Full view" className="max-w-[100%] max-h-[100%] rounded-lg shadow-lg" />
+          ) : (
+            <video src={fullMedia.url} controls className="max-w-[100%] max-h-[100%] rounded-lg shadow-lg" />
+          )}
         </div>
       )}
 
+      {/* Chat Input + Emoji Picker */}
+      <div className="border-t p-2 flex flex-wrap items-center gap-2 relative">
+
+        {/* Input box */}
+        <div className="flex-1 relative">
+          <input
+            type="text"
+            value={newmsg.message}
+            placeholder="Type your message..."
+            className="w-full border-2 border-black rounded-lg p-2 pr-10"
+            onChange={(e) => setNewmsg({ ...newmsg, message: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleInput();
+            }}
+          />
+          {/* Emoji button inside input field */}
+          <button
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-xl"
+          >
+            😊
+          </button>
+          {showEmojiPicker && (
+            <div className="absolute bottom-full right-0 z-50">
+              <Picker onEmojiSelect={addEmoji} />
+            </div>
+          )}
+        </div>
+
+        {/* File Upload */}
+        <div className="relative group">
+          <button className="p-2 border border-gray-300 rounded hover:bg-gray-100" onClick={handleAttachClick}>
+            📎
+          </button>
+          {showDrawer && (
+            <div className="absolute bottom-full mb-2 left-[-25px] bg-white border rounded shadow-md w-40 p-2 z-50">
+              <button onClick={() => fileInputRef.current.click()} className="block w-full text-left hover:bg-gray-100 px-2 py-1 text-sm">📷 Upload Image</button>
+              <button onClick={() => videoInputRef.current.click()} className="block w-full text-left hover:bg-gray-100 px-2 py-1 text-sm">🎥 Upload Video</button>
+            </div>
+          )}
+          <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={(e) => handleFileChange(e, 'image')} />
+          <input type="file" accept="video/*" ref={videoInputRef} className="hidden" onChange={(e) => handleFileChange(e, 'video')} />
+        </div>
+
+        {/* Send button */}
+        <button onClick={handleInput} className="w-[80px] bg-blue-500 text-white rounded-lg h-[42px]">Send</button>
+      </div>
 
     </div>
   );

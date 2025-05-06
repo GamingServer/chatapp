@@ -4,7 +4,7 @@ import useGetMsg from '../../../hooks/useGetMsg';
 import { useSocketContext } from '../../../context/SocketContext';
 
 const RightMenu = ({ onBack }) => {
-  const { selectedUser, socket, setLastMsg } = useSocketContext();
+  const { selectedUser, socket, setLastMsg, setSeenMessage } = useSocketContext();
   const { getMsg } = useGetMsg();
   const { isAdmin } = useAuthContext();
   const [messages, setMessages] = useState([]);
@@ -13,49 +13,51 @@ const RightMenu = ({ onBack }) => {
     message: '',
   });
 
+  const imageUrl = <img src={selectedUser.image} alt="Admin avatar" className="w-6 h-6 rounded-full" />
+
   const messageEndRef = useRef(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
 
   const containerRef = useRef(null);
 
   useEffect(() => {
-          const observer = new IntersectionObserver((entries) => {
-              const updateMessages = [...messages];
-              const seenMessages = [];
-  
-              entries.forEach((entry) => {
-                  if (entry.isIntersecting) {
-                      const _id = entry.target.dataset.id;
-                      const index = updateMessages.findIndex((msg) => msg._id === _id);
-                      if (
-                          index !== -1 &&
-                          updateMessages[index].status !== 'seen' &&
-                          updateMessages[index].senderName !== 'admin'
-                      ) {
-                          updateMessages[index].status = 'seen';
-                          seenMessages.push({ _id: updateMessages[index]._id });
-                      }
-                  }
-              });
-  
-              if (seenMessages.length > 0) {
-                socket.emit('seen-Message',seenMessages)
-              }
-          }, {
-              root: containerRef.current,
-              threshold: 1.0,
-          });
-  
-          const timeout = setTimeout(() => {
-              const messageElements = containerRef.current.querySelectorAll('#message');
-              messageElements.forEach((el) => observer.observe(el));
-          }, 300);
-  
-          return () => {
-              clearTimeout(timeout);
-              observer.disconnect();
-          };
-      }, [messages]);
+    const observer = new IntersectionObserver((entries) => {
+      const updateMessages = [...messages];
+      const seenMessages = [];
+
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const _id = entry.target.dataset.id;
+          const index = updateMessages.findIndex((msg) => msg._id === _id);
+          if (
+            index !== -1 &&
+            updateMessages[index].status !== 'seen' &&
+            updateMessages[index].senderName !== 'admin'
+          ) {
+            updateMessages[index].status = 'seen';
+            seenMessages.push({ _id: updateMessages[index]._id });
+          }
+        }
+      });
+
+      if (seenMessages.length > 0) {
+        setSeenMessage(seenMessages)
+      }
+    }, {
+      root: containerRef.current,
+      threshold: 1.0,
+    });
+
+    const timeout = setTimeout(() => {
+      const messageElements = containerRef.current.querySelectorAll('#message');
+      messageElements.forEach((el) => observer.observe(el));
+    }, 300);
+
+    return () => {
+      clearTimeout(timeout);
+      observer.disconnect();
+    };
+  }, [messages]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -139,11 +141,11 @@ const RightMenu = ({ onBack }) => {
   };
 
   useEffect(() => {
-          if (containerRef.current) {
-              containerRef.current.scrollTop = containerRef.current.scrollHeight;
-          }
-      }, [messages]);
-  
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  }, [messages]);
+
 
   const formatTime = (isoString) => {
     const date = new Date(isoString);
@@ -186,7 +188,7 @@ const RightMenu = ({ onBack }) => {
         </button>
       </div>
 
-      <div ref={containerRef}className="flex-1 overflow-y-auto flex flex-col gap-3 px-4">
+      <div ref={containerRef} className="flex-1 overflow-y-auto flex flex-col gap-3 px-4">
         {messages.map((item, index) => {
           const messageDate = new Date(item.createdAt).toDateString();
           const showDateHeader = messageDate !== lastDate;
@@ -201,26 +203,37 @@ const RightMenu = ({ onBack }) => {
                   </div>
                 </div>
               )}
-              <div data-id={item._id} id='message'
-                className={`${item.senderName !== selectedUser.name
-                  ? 'bg-[#007bff] text-white rounded-[10px] px-[10px] pt-[5px] max-w-[60%] self-end flex flex-col gap-[2px]'
-                  : 'bg-[#696b6e] text-white rounded-[10px] max-w-[60%] self-start pt-[5px] px-[10px]'
+
+              <div
+                data-id={item._id}
+                id={`message-${item._id}`}
+                className={`flex items-end min-w-[40%] gap-2 ${item.senderName === 'admin' ? 'self-end flex-row-reverse' : 'self-start'
                   }`}
               >
-                <p className="flex flex-row gap-[20px] text-lg">
-                  {item.message}
-                  <span className="text-[10px] mt-2">
-                    {formatTime(item.createdAt)}
+                {item.senderName !== 'admin' && (
+                  imageUrl
+                )}
+
+                <div
+                  className={`${item.senderName === 'admin'
+                      ? 'bg-[#007bff] text-white'
+                      : 'bg-[#e4e6eb] text-black'
+                    } rounded-[10px] px-3 py-2 max-w-[60%] min-w-[30%]`}
+                >
+                  <p className="text-sm">{item.message}</p>
+                  <span className="text-[10px] block text-right whitespace-nowrap">
+                    <time dateTime={item.createdAt}>{formatTime(item.createdAt)}</time>
                     {item.senderName === 'admin' && (
-                      <span className="seen-msg mt-2">
+                      <span className="ml-1">
                         {item.status === 'sent' && '✓'}
                         {item.status === 'delivered' && '✓✓'}
                         {item.status === 'seen' && <span style={{ color: 'black' }}>✓✓</span>}
                       </span>
                     )}
                   </span>
-                </p>
+                </div>
               </div>
+
             </React.Fragment>
           );
         })}

@@ -5,10 +5,9 @@ import { useSocketContext } from '../../../context/SocketContext';
 import Picker from '@emoji-mart/react';
 import emojiRegex from 'emoji-regex';
 
-// import 'emoji-mart/css/emoji-mart.css';
 
 const RightMenu = ({ onBack }) => {
-  const { selectedUser, socket, setLastMsg, setSeenMessage } = useSocketContext();
+  const { selectedUser, socket, setLastMsg, setSeenMessage ,onlineUser  } = useSocketContext();
   const { getMsg } = useGetMsg();
   const { isAdmin } = useAuthContext();
 
@@ -231,16 +230,15 @@ const RightMenu = ({ onBack }) => {
 
   return (
     <div className="w-full h-full flex flex-col">
-      {/* Header */}
       <div className="h-[10%] w-full flex justify-between items-center border-b-2 border-black px-4">
         <button className="md:hidden text-blue-600 font-semibold" onClick={onBack}>← Back</button>
-        <h2 className="text-[30px] mx-auto md:mx-0 pt-0">{selectedUser.name}</h2>
+        <h2 className="text-[30px] mx-auto md:mx-0 pt-0 flex flex-col">{selectedUser.name} {onlineUser.includes(selectedUser.name)&&<span className='text-sm'>online</span>}</h2>
+        
         <button onClick={() => setShowUserDetails(true)}>
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path fill="currentColor" d="M20.75 7a.75.75 0 0 1-.75.75H4a.75.75 0 0 1 0-1.5h16a.75.75 0 0 1 .75.75m0 5a.75.75 0 0 1-.75.75H4a.75.75 0 0 1 0-1.5h16a.75.75 0 0 1 .75.75m0 5a.75.75 0 0 1-.75.75H4a.75.75 0 0 1 0-1.5h16a.75.75 0 0 1 .75.75" /></svg>
         </button>
       </div>
 
-      {/* Chat Body */}
       <div ref={containerRef} className="flex-1 overflow-y-auto flex flex-col gap-3 px-4">
         {messages.map((item) => {
           const messageDate = new Date(item.createdAt).toDateString();
@@ -286,7 +284,6 @@ const RightMenu = ({ onBack }) => {
         <div ref={messageEndRef} />
       </div>
 
-      {/* Full Media Modal */}
       {fullMedia.url && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50" onClick={() => setFullMedia({ type: '', url: '' })}>
           {fullMedia.type === 'image' ? (
@@ -297,10 +294,8 @@ const RightMenu = ({ onBack }) => {
         </div>
       )}
 
-      {/* Chat Input + Emoji Picker */}
       <div className="border-t p-2 flex flex-wrap items-center gap-2 relative">
 
-        {/* Input box */}
         <div className="flex-1 relative">
           <input
             type="text"
@@ -312,7 +307,6 @@ const RightMenu = ({ onBack }) => {
               if (e.key === 'Enter') handleInput();
             }}
           />
-          {/* Emoji button inside input field */}
           <button
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
             className="absolute right-2 top-1/2 -translate-y-1/2 text-xl"
@@ -326,7 +320,6 @@ const RightMenu = ({ onBack }) => {
           )}
         </div>
 
-        {/* File Upload */}
         <div className="relative group">
           <button className="p-2 border border-gray-300 rounded hover:bg-gray-100" onClick={handleAttachClick}>
             📎
@@ -341,7 +334,6 @@ const RightMenu = ({ onBack }) => {
           <input type="file" accept="video/*" ref={videoInputRef} className="hidden" onChange={(e) => handleFileChange(e, 'video')} />
         </div>
 
-        {/* Send button */}
         <button onClick={handleInput} className="w-[80px] bg-blue-500 text-white rounded-lg h-[42px]">Send</button>
       </div>
 

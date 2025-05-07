@@ -27,6 +27,7 @@ const isUserOnline = ({ id }) => {
     return user.get(id);
 };
 
+let admin_online = false;
 const getSelectedUser = () => selectedUser;
 
 const getOnlineUsers = () => onlineUsers;
@@ -35,12 +36,12 @@ io.on('connection', (socket) => {
     socket.on('join', (username) => {
         user.set(username, socket.id);
         msgID.set(socket.id, username);
-        
+        onlineUsers.push(username);
+        socket.broadcast.emit('online-user', onlineUsers)
         if (user.get('admin') || username === 'admin') {
-            socket.broadcast.emit('admin-online', true);
+            admin_online = true;
+            socket.broadcast.emit('admin-online', admin_online);
         }
-
-
     });
 
     socket.on('selectedUser', (value) => {
@@ -48,35 +49,33 @@ io.on('connection', (socket) => {
         socket.broadcast.emit('selectedUser', value);
     });
 
-    socket.on('online-userName', (username) => {
-        if (!onlineUsers.includes(username)) {
-            onlineUsers.push(username);
-            socket.broadcast.emit('online-userName', username);
-        }
-    });
 
-    socket.on('offline-userName', (username) => {
-        onlineUsers = onlineUsers.filter(user => user !== username);
-    });
     socket.on('seen-Message', async (value) => {
         let user = []
-        console.log(value)
         value.map((item) => user.push(item._id))
         const res = await MessageDb.updateMany({ _id: { $in: user } }, { $set: { status: 'seen' } })
-        socket.broadcast.emit('seen-Message',user)
+        socket.broadcast.emit('seen-Message', user)
     })
 
+    socket.on('online-user',(value , callback)=>{
+        callback(onlineUsers)
+    })
+
+    socket.on('admin-online', (data, callback) => {
+        callback(admin_online);
+    })
     socket.on('disconnect', () => {
         const username = msgID.get(socket.id);
 
         if (username) {
             user.delete(username);
             msgID.delete(socket.id);
-            onlineUsers = onlineUsers.filter(user => user !== username);
-
+            onlineUsers = onlineUsers.filter((user) => user !== username);
+            socket.broadcast.emit('online-user', onlineUsers)
             if (username === 'admin') {
                 selectedUser = null;
-                socket.broadcast.emit('admin-online', false);
+                admin_online = false;
+                socket.broadcast.emit('admin-online',admin_online)
             }
         }
     });

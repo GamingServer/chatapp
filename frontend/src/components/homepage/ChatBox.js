@@ -6,7 +6,7 @@ import { useAuthContext } from '../../context/AuthContext';
 import { useSocketContext } from '../../context/SocketContext';
 import Picker from '@emoji-mart/react';
 const ChatBox = ({ toggle }) => {
-  const { socket, setSeenMessage } = useSocketContext();
+  const { socket, setSeenMessage, isAdminOnline } = useSocketContext();
   const { getMsg } = useGetMsg();
   const { sendMsg } = useSentMsg();
   const { authUser } = useAuthContext();
@@ -59,7 +59,6 @@ const ChatBox = ({ toggle }) => {
     });
 
     const timeout = setTimeout(() => {
-      // Ensure that containerRef.current exists before trying to query elements
       if (containerRef.current) {
         const messageElements = containerRef.current.querySelectorAll('#message');
         messageElements.forEach((el) => observer.observe(el));
@@ -76,7 +75,6 @@ const ChatBox = ({ toggle }) => {
   useEffect(() => {
     if (authUser) {
       getMsg({ senderName: authUser.username, reciverName: 'admin' }).then((value) => {
-        console.log(value);
         setMessages(Array.isArray(value) ? value : []);
       });
     }
@@ -198,7 +196,8 @@ const ChatBox = ({ toggle }) => {
     <div className="fixed bg-[#fff] rounded-xl shadow-lg flex flex-col pb-[10px] overflow-hidden
       md:w-[400px] md:h-[600px] w-screen h-screen bottom-0 right-0 md:bottom-5 md:right-5 z-50">
       <div className="bg-[#007bff] text-white p-4 rounded-tl-[10px] rounded-tr-[10px] flex justify-between items-center">
-        <h2>Chat with us</h2>
+        <h2 className='text-xl flex flex-col'>Chat with us {isAdminOnline && <span className='text-xs'>admin is online</span>}</h2>
+        
         <button className='bg-transparent border-0 text-white text-[20px] cursor-pointer' onClick={toggle}>X</button>
       </div>
 
@@ -312,52 +311,48 @@ const ChatBox = ({ toggle }) => {
             </div>
           )}
 
-<div className="border-t p-2 flex flex-row items-center gap-2 relative">
-  {/* Text Input */}
-  <input
-    type="text"
-    value={newmsg.message}
-    placeholder="Type your message..."
-    className='flex-grow border-2 border-black rounded-lg p-2'
-    onChange={(e) => setNewmsg({ ...newmsg, message: e.target.value })}
-    onKeyDown={(e) => {
-      if (e.key === 'Enter') handleInput();
-    }}
-  />
+          <div className="border-t p-2 flex flex-row items-center gap-2 relative">
+            <input
+              type="text"
+              value={newmsg.message}
+              placeholder="Type your message..."
+              className='flex-grow border-2 border-black rounded-lg p-2'
+              onChange={(e) => setNewmsg({ ...newmsg, message: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleInput();
+              }}
+            />
 
-  {/* Emoji Button */}
-  <div className="relative">
-    <button
-      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-      className="text-2xl"
-    >
-      😊
-    </button>
-    {showEmojiPicker && (
-      <div className="absolute bottom-full mb-2 right-0 z-50">
-        <Picker onEmojiSelect={(emoji) => setNewmsg({ ...newmsg, message: newmsg.message + emoji.native })} />
-      </div>
-    )}
-  </div>
+            <div className="relative">
+              <button
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="text-2xl"
+              >
+                😊
+              </button>
+              {showEmojiPicker && (
+                <div className="absolute bottom-full mb-2 right-0 z-50">
+                  <Picker onEmojiSelect={(emoji) => setNewmsg({ ...newmsg, message: newmsg.message + emoji.native })} />
+                </div>
+              )}
+            </div>
 
-  {/* File Uploader */}
-  <div className="relative group">
-    <button onClick={handleAttachClick} className="p-2">
-      📎
-    </button>
-    {showDrawer && (
-      <div className="absolute bottom-full mb-2 right-0 bg-white border rounded shadow-md w-40 p-2 z-50">
-        <button onClick={() => fileInputRef.current.click()} className="block w-full text-left hover:bg-gray-100 px-2 py-1 text-sm">📷 Upload Image</button>
-        <button onClick={() => videoInputRef.current.click()} className="block w-full text-left hover:bg-gray-100 px-2 py-1 text-sm">🎥 Upload Video</button>
-      </div>
-    )}
-    <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={(e) => handleFileChange(e, 'image')} />
-    <input type="file" accept="video/*" ref={videoInputRef} className="hidden" onChange={(e) => handleFileChange(e, 'video')} />
-  </div>
+            <div className="relative group">
+              <button onClick={handleAttachClick} className="p-2">
+                📎
+              </button>
+              {showDrawer && (
+                <div className="absolute bottom-full mb-2 right-0 bg-white border rounded shadow-md w-40 p-2 z-50">
+                  <button onClick={() => fileInputRef.current.click()} className="block w-full text-left hover:bg-gray-100 px-2 py-1 text-sm">📷 Upload Image</button>
+                  <button onClick={() => videoInputRef.current.click()} className="block w-full text-left hover:bg-gray-100 px-2 py-1 text-sm">🎥 Upload Video</button>
+                </div>
+              )}
+              <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={(e) => handleFileChange(e, 'image')} />
+              <input type="file" accept="video/*" ref={videoInputRef} className="hidden" onChange={(e) => handleFileChange(e, 'video')} />
+            </div>
 
-  {/* Send Button */}
-  <button onClick={handleInput} className='bg-blue-500 text-white rounded-lg px-4 py-2'>Send</button>
-</div>
+            <button onClick={handleInput} className='bg-blue-500 text-white rounded-lg px-4 py-2'>Send</button>
+          </div>
 
         </>
       ) : (

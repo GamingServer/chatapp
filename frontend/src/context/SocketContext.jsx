@@ -14,6 +14,7 @@ export const SocketContextProvider = ({ children }) => {
     const [lastMsg, setLastMsg] = useState();
     const [seenMessages, setSeenMessage] = useState();
     const [isAdminOnline, setIsAdminOnline] = useState(false);
+    const [onlineUser, setOnlineUser] = useState([]);
 
     useEffect(() => {
         setInterval(() => {
@@ -41,12 +42,24 @@ export const SocketContextProvider = ({ children }) => {
                 })
             } else if (authUser) {
                 socket.emit('join', authUser.username);
-                socket.on('admin-online', (value) => {
+                socket.on('admin-online',(value) => {
+                    setIsAdminOnline(value)
+                })
+                socket.emit('admin-online', {}, (value) => {
+                    setIsAdminOnline(value)
                 })
             } else {
                 socket.emit('join', 'admin')
                 socket.on('new-user', (value) => {
                     setAllUser(prev => [...prev, value])
+                })
+                
+                socket.on('online-user',(value)=>{
+                    setOnlineUser(value)
+                })
+
+                socket.emit('online-user',{} ,(value) => {
+                    setOnlineUser(value);
                 })
             }
             setSocket(socket)
@@ -78,5 +91,7 @@ export const SocketContextProvider = ({ children }) => {
         }
     }, [seenMessages])
 
-    return <SocketContext.Provider value={{ seenMessages, setSeenMessage, socket, setSelectedUser, selectedUser, allUser, setAllUser, isAdminOnline, lastMsg, setLastMsg }}>{children}</SocketContext.Provider>
+
+
+    return <SocketContext.Provider value={{ onlineUser, seenMessages, setSeenMessage, socket, setSelectedUser, selectedUser, allUser, setAllUser, isAdminOnline, lastMsg, setLastMsg }}>{children}</SocketContext.Provider>
 }

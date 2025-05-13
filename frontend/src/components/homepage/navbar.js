@@ -20,6 +20,7 @@ const Navbar = () => {
       const response = await fetch(`http://localhost:8080/api/image/upload/${authUser.username}`, {
         method: 'POST',
         body: formData,
+        credentials:'include'
       });
 
       if (!response.ok) throw new Error('upload failed');

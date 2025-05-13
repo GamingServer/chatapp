@@ -13,6 +13,8 @@ const userData = new mongoose.Schema({
     },
     phoneNumber:{
         type:Number,
+        required:true,
+        unique:true
     },
     image:{
         type:String,

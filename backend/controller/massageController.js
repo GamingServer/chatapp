@@ -38,12 +38,30 @@ const sendMassage = async (req, res) => {
   })
 
   if (newMessage) {
+    const lastMessage = await massageModul.aggregate([
+      {
+        $match: {
+          senderName: 'admin', receiverName: receiverName !== 'admin' ? receiverName : senderName
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
+      },
+      {
+        $limit: 1
+      }
+    ]);
+
+
     conversation.messages.push(newMessage._id);
     await Promise.all([conversation.save(), newMessage.save()])
-
     const token = getAdminToken({ id: receiverName })
     await io.to(token).emit('receiveMessage', { message: newMessage })
     res.send(newMessage);
+    if (!lastMessage.isChoice || !lastMessage) {
+      const token = getAdminToken({id:senderName})
+      firstChoice({token:token , reciverName : senderName , io:io,message:message.message});
+    }
 
   }
 
@@ -143,7 +161,8 @@ const getLastMsg = async (req, res) => {
 }
 
 
-const multer = require('multer')
+const multer = require('multer');
+const { firstChoice } = require('./choice/firstchoice');
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {

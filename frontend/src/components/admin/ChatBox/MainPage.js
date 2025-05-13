@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import RightMenu from './RightMenu';
 import { useSocketContext } from '../../../context/SocketContext';
+import { Link } from 'react-router-dom';
 
 const MainPage = () => {
   const {
@@ -49,8 +50,11 @@ const MainPage = () => {
         className={`md:w-1/3 w-full h-full border-r-2 md:flex flex-col transition-all duration-300 ${showChatOnly ? 'hidden md:flex' : 'flex'
           }`}
       >
-        <div className="h-[10%] w-full flex justify-center items-center border-b-2 border-black">
+        <div className="px-10 h-[10%] w-full flex justify-between items-center border-b-2 border-black">
           <h1 className="text-[30px]">Chat Box</h1>
+          <Link to={'/admin/game'}>
+            <h4 className='hover:text-blue-600 duration-300 hover:text-lg'>Game</h4>
+          </Link>
         </div>
         <div className="h-full px-5 py-3 flex gap-y-2 flex-col overflow-y-auto">
           {allUser.map((user, index) => {
@@ -72,7 +76,6 @@ const MainPage = () => {
                   setShowChatOnly(true);
                 }}
               >
-                {/* User Image */}
                 <img
                   src={user.image || 'https://avatar.iran.liara.run/public/boy/hello'}
                   alt="User"

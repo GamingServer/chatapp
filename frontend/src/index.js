@@ -9,6 +9,7 @@ import MainPage from './components/admin/ChatBox/MainPage';
 import { SocketContextProvider } from './context/SocketContext';
 import { AuthContextProvider } from './context/AuthContext';
 import Contect from './contect.js';
+import GameMainPage from './components/admin/game/mainPage.js';
 
 
 const token = Cookies.get('admin');
@@ -21,7 +22,8 @@ root.render(
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/admin" element={token ? <MainPage /> : <LoginPage />} />
-            <Route path='/contect'element={<Contect/>}/>
+            <Route path="/admin/game" element={token ? <GameMainPage /> : <LoginPage />} />
+            <Route path='/contect' element={<Contect />} />
           </Routes>
         </Router>
       </React.StrictMode>

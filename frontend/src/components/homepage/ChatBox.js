@@ -120,28 +120,31 @@ const ChatBox = ({ toggle }) => {
     }
   }, [socket, authUser?.username]);
 
-  const handleInput = async () => {
-    if (!newmsg.message.trim()) {
+  const handleInput = async (customMsg) => {
+    const messageToSend = customMsg || newmsg.message;
+
+    if (!messageToSend.trim()) {
       alert("Please enter a message");
       return;
     }
 
-    const messageToSend = {
-      message: newmsg.message,
+    const payload = {
+      message: messageToSend,
       senderName: authUser.username,
       receiverName: "admin",
       status: 'sent'
     };
 
     if (socket) {
-      socket.emit('sendMessage', { to: 'admin', message: newmsg.message, status: 'sent' });
+      socket.emit('sendMessage', { to: 'admin', message: messageToSend, status: 'sent' });
     }
 
-    const data = await sendMsg({ MSG: messageToSend, senderName: authUser.username, reciverName: 'admin' });
+    const data = await sendMsg({ MSG: payload, senderName: authUser.username, reciverName: 'admin' });
     setMessages(prev => [...prev, data]);
     setNewmsg(prev => ({ ...prev, message: "" }));
-    setShowEmojiPicker(false)
+    setShowEmojiPicker(false);
   };
+
 
   useEffect(() => {
     if (containerRef.current) {
@@ -159,7 +162,8 @@ const ChatBox = ({ toggle }) => {
     try {
       const res = await fetch(`http://localhost:8080/api/messages/upload/${type}/${authUser.username}/admin`, {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'include'
       })
       if (!res.ok) throw new Error('Failed to upload file');
       const data = await res.json();
@@ -197,7 +201,7 @@ const ChatBox = ({ toggle }) => {
       md:w-[400px] md:h-[600px] w-screen h-screen bottom-0 right-0 md:bottom-5 md:right-5 z-50">
       <div className="bg-[#007bff] text-white p-4 rounded-tl-[10px] rounded-tr-[10px] flex justify-between items-center">
         <h2 className='text-xl flex flex-col'>Chat with us {isAdminOnline && <span className='text-xs'>admin is online</span>}</h2>
-        
+
         <button className='bg-transparent border-0 text-white text-[20px] cursor-pointer' onClick={toggle}>X</button>
       </div>
 
@@ -268,7 +272,26 @@ const ChatBox = ({ toggle }) => {
                               {item.message}
                             </a>
                           ) : (
-                            <p className="text-sm">{item.message}</p>
+
+                            item.isChoice && item.choice?.length > 0 ? (
+                              <div className="flex flex-col gap-2 mt-1">
+                                <p className='text-sm'>{item.message}</p>
+                                {item.choice.map((choice, idx) => (
+                                  <button
+                                    key={idx}
+                                    className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
+                                    onClick={() => handleInput(choice)}
+                                  >
+                                    {choice}
+                                  </button>
+                                ))}
+                              </div>
+                            )
+                              : (
+                                <p className="text-sm">{item.message}</p>
+                              )
+
+
                           )
                         }
 

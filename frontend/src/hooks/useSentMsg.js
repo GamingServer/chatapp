@@ -7,7 +7,8 @@ const useSentMsg = () => {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body:JSON.stringify(MSG)
+                body:JSON.stringify(MSG),
+                credentials:'include'
             });
             const data = await response.json();
             if (response.status === 200) {

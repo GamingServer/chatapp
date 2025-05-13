@@ -1,5 +1,3 @@
-const { useState } = require("react");
-
 const useGetMsg = () => {
 
     const getMsg = async ({ senderName, reciverName }) => {
@@ -8,7 +6,8 @@ const useGetMsg = () => {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json"
-                }
+                },
+                credentials:'include'
             });
             const data = await response.json();
             if (response.status === 200) {

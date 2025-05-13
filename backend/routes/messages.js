@@ -1,4 +1,5 @@
 const { upload,sendMassage, getMessage, getUserForAdmin, getAllUserMsg, getLastMsg , saveImage , saveVideo } = require('../controller/massageController');
+const { protectRoute } = require('../middleware/protectRoute');
 
 const router = require('express').Router();
 

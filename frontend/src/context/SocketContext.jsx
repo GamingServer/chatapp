@@ -19,7 +19,9 @@ export const SocketContextProvider = ({ children }) => {
     useEffect(() => {
         setInterval(() => {
             if (isAdmin) {
-                fetch('http://localhost:8080/api/messages/last/msg').then((value) => {
+                fetch('http://localhost:8080/api/messages/last/msg',{
+                    credentials:'include'
+                }).then((value) => {
                     value.json().then((data) => {
                         setLastMsg(data);
                     });

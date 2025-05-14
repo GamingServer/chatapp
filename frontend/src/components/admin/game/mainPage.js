@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 const GameMainPage = () => {
 
-    const [selectedMenu, setSelectedMenu] = useState();
+    const [selectedMenu, setSelectedMenu] = useState(1);
 
     return (
         <div className='h-screen flex flex-col'>
@@ -45,7 +45,7 @@ const GameMainPage = () => {
             </header>
             <div className="h-full relative overflow-hidden">
                 <AnimatePresence mode='wait' >
-                    {selectedMenu === 1 ? (
+                    {selectedMenu === 4 ? (
                         <motion.div
                             key="category"
                             initial={{ opacity: 0, x: 50 }}
@@ -54,7 +54,7 @@ const GameMainPage = () => {
                             transition={{ duration: 0.3 }}
                             className="absolute w-full h-full"
                         >
-                            <Category />
+                            <Point/>
                         </motion.div>
                     ) : selectedMenu === 2 ? (
                         <motion.div
@@ -87,7 +87,7 @@ const GameMainPage = () => {
                             transition={{ duration: 0.3 }}
                             className="absolute w-full h-full"
                         >
-                            <Point />
+                            <Category />
                         </motion.div>
                     )}
                 </AnimatePresence>

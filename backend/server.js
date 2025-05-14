@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 5000;
 const imageUpload = require('./routes/image.js')
 const path = require('path');
 const cookieParser = require('cookie-parser')
+const categoryRouter = require('./routes/categoryRoute.js');
 
 
 
@@ -45,7 +46,10 @@ app.use('/api/messages', message)
 
 app.use('/api/image', imageUpload);
 
+app.use('/api/category',categoryRouter);
+
 app.use('/uploads', express.static(path.join(__dirname, './uploads')));
+
 
 server.listen(PORT, async () => {
   await connectToMongodb();

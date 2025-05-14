@@ -30,6 +30,14 @@ const schema = mongoose.Schema({
     selectedChoice:{
         type: String,
         defalut:null
+    },
+    isUsed:{
+        type:Boolean,
+        default:false
+    },
+    category:{
+        type:String,
+        default:null
     }
 
 }, { timestamps: true });

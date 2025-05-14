@@ -120,20 +120,42 @@ const ChatBox = ({ toggle }) => {
     }
   }, [socket, authUser?.username]);
 
-  const handleInput = async (customMsg) => {
+  const handleInput = async (customMsg, item_id) => {
     const messageToSend = customMsg || newmsg.message;
+
 
     if (!messageToSend.trim()) {
       alert("Please enter a message");
       return;
     }
 
-    const payload = {
-      message: messageToSend,
-      senderName: authUser.username,
-      receiverName: "admin",
-      status: 'sent'
-    };
+    let payload = {};
+
+    if (customMsg) {
+      payload = {
+        message: messageToSend,
+        senderName: authUser.username,
+        receiverName: "admin",
+        status: 'sent',
+        choice_id: item_id
+      };
+
+      setMessages(prev =>
+        prev.map(msg =>
+          msg._id === item_id ?
+            { ...msg, selectedChoice: messageToSend } :
+            msg
+        )
+      )
+
+    } else {
+      payload = {
+        message: messageToSend,
+        senderName: authUser.username,
+        receiverName: "admin",
+        status: 'sent',
+      };
+    }
 
     if (socket) {
       socket.emit('sendMessage', { to: 'admin', message: messageToSend, status: 'sent' });
@@ -154,24 +176,39 @@ const ChatBox = ({ toggle }) => {
 
   const handleAttachClick = () => setShowDrawer(prev => !prev);
 
-  const handleFileChange = async (e, type) => {
+  const handleFileChange = async (e, type, id, category) => {
     const file = e.target.files[0];
     if (!file || !authUser?.username) return;
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('messageId', id);
+    formData.append('category', category);
     try {
-      const res = await fetch(`http://localhost:8080/api/messages/upload/${type}/${authUser.username}/admin`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      })
-      if (!res.ok) throw new Error('Failed to upload file');
-      const data = await res.json();
-      console.log(data);
-      setMessages(prev => [...prev, data]);
-      setShowDrawer(false);
+      if (id) {
+        setMessages(prev =>
+          prev.map(msg =>
+            msg._id === id ? { ...msg, isUsed: true } : msg
+          )
+        );
+        await fetch(`http://localhost:8080/api/category/image/${authUser.username}/admin`, {
+          method: 'POST',
+          body: formData,
+          // credentials: 'include'
+        })
+      } else {
+        const res = await fetch(`http://localhost:8080/api/messages/upload/${type}/${authUser.username}/admin`, {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        })
+        if (!res.ok) throw new Error('Failed to upload file');
+        const data = await res.json();
+        setMessages(prev => [...prev, data]);
+        setShowDrawer(false);
+      }
     } catch (e) {
-      alert(e);
+      console.log(e)
+      // alert(e);
     }
   };
 
@@ -271,6 +308,19 @@ const ChatBox = ({ toggle }) => {
                             >
                               {item.message}
                             </a>
+                          ) : item.type === 'category' ? (
+                            !item.isUsed ? (<div className='flex flex-col gap-2 mt-1'>
+                              <p className='text-sm'>{item.message}</p>
+                              <label className='bg-blue-600 text-white px-4 py-2 rounded cursor-pointer hover:bg-blue-700'>
+                                Send File
+                                <input type='file' className='hidden' accept='image/*' onChange={(e) => handleFileChange(e, 'image', item._id, item.category)} />
+                              </label>
+                            </div>) : (
+                              <div className='flex flex-col gap-2 mt-1'>
+                                <p className='text-base'>Image Already Uploaded</p>
+                              </div>
+                            )
+
                           ) : (
 
                             item.isChoice && item.choice?.length > 0 ? (
@@ -279,17 +329,22 @@ const ChatBox = ({ toggle }) => {
                                 {item.choice.map((choice, idx) => (
                                   <button
                                     key={idx}
-                                    className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
-                                    onClick={() => handleInput(choice)}
+                                    disabled={!!item.selectedChoice}
+                                    className={
+                                      " px-3 py-1 rounded text-sm transition-colors " +
+                                      (item.selectedChoice === choice
+                                        ? "bg-blue-600 text-white"
+                                        : "hover:bg-blue-600 hover:text-white bg-white text-black")
+                                    }
+                                    onClick={() => handleInput(choice, item._id)}
                                   >
                                     {choice}
                                   </button>
                                 ))}
                               </div>
+                            ) : (
+                              <p className="text-sm">{item.message}</p>
                             )
-                              : (
-                                <p className="text-sm">{item.message}</p>
-                              )
 
 
                           )
@@ -354,7 +409,7 @@ const ChatBox = ({ toggle }) => {
                 😊
               </button>
               {showEmojiPicker && (
-                <div className="absolute bottom-full mb-2 right-0 z-50">
+                <div className="absolute bottom-full mb-2 right-[-100 px] z-50">
                   <Picker onEmojiSelect={(emoji) => setNewmsg({ ...newmsg, message: newmsg.message + emoji.native })} />
                 </div>
               )}
@@ -374,7 +429,7 @@ const ChatBox = ({ toggle }) => {
               <input type="file" accept="video/*" ref={videoInputRef} className="hidden" onChange={(e) => handleFileChange(e, 'video')} />
             </div>
 
-            <button onClick={handleInput} className='bg-blue-500 text-white rounded-lg px-4 py-2'>Send</button>
+            <button onClick={async () => await handleInput()} className='bg-blue-500 text-white rounded-lg px-4 py-2'>Send</button>
           </div>
 
         </>

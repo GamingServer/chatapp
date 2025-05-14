@@ -15,18 +15,18 @@ import GameMainPage from './components/admin/game/mainPage.js';
 const token = Cookies.get('admin');
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <AuthContextProvider>
-    <SocketContextProvider>
-      <React.StrictMode>
+  <React.StrictMode>
+    <AuthContextProvider>
+      <SocketContextProvider>
         <Router>
           <Routes>
-            <Route path="/" element={<HomePage />} />
+            <Route path="*" index element={<HomePage />} />
             <Route path="/admin" element={token ? <MainPage /> : <LoginPage />} />
             <Route path="/admin/game" element={token ? <GameMainPage /> : <LoginPage />} />
             <Route path='/contect' element={<Contect />} />
           </Routes>
         </Router>
-      </React.StrictMode>
-    </SocketContextProvider>
-  </AuthContextProvider>
+      </SocketContextProvider>
+    </AuthContextProvider>
+  </React.StrictMode>
 );

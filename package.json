@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "server": "concurrently \"nodemon ./backend/server.js\" \"npm start --prefix frontend\"",
+    "server": "nodemon ./backend/server.js",
     "onserver": "node ./backend/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "initServer": "npm install && npm install --prefix frontend && npm run build --prefix frontend"

@@ -1,6 +1,7 @@
 const massageModul = require("../../../modules/schema/massage.modul");
 const pointCategory = require("../../../modules/schema/pointCategory");
 const pointTable = require("../../../modules/schema/pointTable");
+const { io, getAdminToken } = require("../../../socket.io/socket");
 
 
 const getCategory = async (req, res) => {
@@ -102,6 +103,8 @@ const saveImage = async (req, res) => {
             image: fileUrl
         })
         const data = await point.save()
+        const token = getAdminToken({ id: 'admin' })
+        io.to(token).emit('aproveCategory', data);
     } catch (error) {
         console.log('error in image save in category', error);
         res.status(500).json({

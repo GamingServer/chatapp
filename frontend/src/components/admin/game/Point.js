@@ -1,16 +1,33 @@
 import React, { useEffect, useState } from 'react'
+import { useSocketContext } from '../../../context/SocketContext';
 
 const Point = () => {
+
+  const { socket } = useSocketContext();
+
+
+
 
   const [pendingpoints, setPendingPoints] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   useEffect(() => {
-    fetch('http://localhost:8080/api/category/get/pendingpoint').then((res) => {
-      return res.json()
-    }).then((data) => {
-      setPendingPoints(data.pendingPoint);
-    })
-  }, [])
+    fetch('http://localhost:8080/api/category/get/pendingpoint')
+      .then((res) => res.json())
+      .then((data) => {
+        setPendingPoints(data.pendingPoint);
+      });
+
+    socket.on('aproveCategory', (data) => {
+      setPendingPoints((prev) => [...prev, data]);
+    });
+
+    // Optional: Clean up socket listener on unmount
+    return () => {
+      socket.off('aproveCategory');
+    };
+  }, []);
+
+
 
   return (
     <div className='flex flex-row h-[100%]'>
@@ -45,7 +62,7 @@ const Point = () => {
                   headers: {
                     'Content-Type': 'application/json',
                   },
-                  body: JSON.stringify({ id: selectedCategory._id})
+                  body: JSON.stringify({ id: selectedCategory._id })
                 })
                 setSelectedCategory(null)
                 setPendingPoints(prev =>

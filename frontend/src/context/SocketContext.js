@@ -1,3 +1,4 @@
+
 import { io } from "socket.io-client";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useAuthContext } from "./AuthContext";
@@ -19,8 +20,8 @@ export const SocketContextProvider = ({ children }) => {
     useEffect(() => {
         setInterval(() => {
             if (isAdmin) {
-                fetch('http://localhost:8080/api/messages/last/msg',{
-                    credentials:'include'
+                fetch('http://localhost:8080/api/messages/last/msg', {
+                    credentials: 'include'
                 }).then((value) => {
                     value.json().then((data) => {
                         setLastMsg(data);
@@ -44,7 +45,7 @@ export const SocketContextProvider = ({ children }) => {
                 })
             } else if (authUser) {
                 socket.emit('join', authUser.username);
-                socket.on('admin-online',(value) => {
+                socket.on('admin-online', (value) => {
                     setIsAdminOnline(value)
                 })
                 socket.emit('admin-online', {}, (value) => {
@@ -55,14 +56,15 @@ export const SocketContextProvider = ({ children }) => {
                 socket.on('new-user', (value) => {
                     setAllUser(prev => [...prev, value])
                 })
-                
-                socket.on('online-user',(value)=>{
+
+                socket.on('online-user', (value) => {
                     setOnlineUser(value)
                 })
 
-                socket.emit('online-user',{} ,(value) => {
+                socket.emit('online-user', {}, (value) => {
                     setOnlineUser(value);
                 })
+                
             }
             setSocket(socket)
             return () => socket.close();

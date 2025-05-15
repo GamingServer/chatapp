@@ -96,7 +96,7 @@ const Category = () => {
     setShowEditModal(false);
     if (selectedCategory && selectedCategory._id === currentEdit._id) {
       console.log(selectedCategory)
-      setSelectedCategory({ ...currentEdit, category: editValue.category , point:editValue.point });
+      setSelectedCategory({ ...currentEdit, category: editValue.category, point: editValue.point });
     }
   };
 
@@ -246,31 +246,55 @@ const Category = () => {
             <input
               type="number"
               value={newCategory.point}
-              onChange={(e) => setNewCategory({ ...newCategory, point: e.target.value })}
+              onChange={(e) => setNewCategory({ ...newCategory, point: Number(e.target.value) })}
               className="border p-2 w-full mb-4 rounded"
               placeholder="Enter category point"
             />
+            <div className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                checked={newCategory.isLimit}
+                onChange={(e) => setNewCategory({ ...newCategory, isLimit: e.target.checked })}
+                className="mr-2"
+              />
+              <label>Limit Players?</label>
+            </div>
+            {newCategory.isLimit && (
+              <input
+                type="number"
+                value={newCategory.maxPlayerLimit}
+                onChange={(e) => setNewCategory({ ...newCategory, maxPlayerLimit: Number(e.target.value) })}
+                className="border p-2 w-full mb-4 rounded"
+                placeholder="Enter max player limit"
+                min="1"
+              />
+            )}
             <div className="flex justify-around">
               <button
                 onClick={async () => {
                   if (newCategory.category.trim()) {
+                    const payload = {
+                      category: newCategory.category,
+                      point: newCategory.point,
+                      isLimit: newCategory.isLimit,
+                      MaxPlayerLimit: newCategory.isLimit ? newCategory.maxPlayerLimit : 0,
+                    };
 
                     const res = await fetch('http://localhost:8080/api/category/add', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
                       },
-                      body: JSON.stringify({ category: newCategory.category, point: newCategory.point })
-                    })
+                      body: JSON.stringify(payload),
+                    });
 
                     const data = await res.json();
                     if (res.ok) {
                       setCategoryList([...categoryList, data.newCategory]);
-                      setNewCategory({ category: '', point: 0 });
+                      setNewCategory({ category: '', point: 0, isLimit: false, maxPlayerLimit: 0 });
                       setShowAddModal(false);
-                    }
-                    else {
-                      alert(data.message)
+                    } else {
+                      alert(data.message);
                     }
                   }
                 }}
@@ -281,7 +305,7 @@ const Category = () => {
               <button
                 onClick={() => {
                   setShowAddModal(false);
-                  setNewCategory('');
+                  setNewCategory({ category: '', point: 0, isLimit: false, maxPlayerLimit: 0 });
                 }}
                 className="bg-gray-300 px-4 py-2 rounded"
               >

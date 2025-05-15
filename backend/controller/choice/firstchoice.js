@@ -3,7 +3,7 @@ const messageModule = require('../../modules/schema/massage.modul');
 const pointCategory = require('../../modules/schema/pointCategory');
 const categoryModule = require('../../modules/schema/pointCategory');
 const pointTable = require('../../modules/schema/pointTable');
-const {io , getAdminToken} = require('../../socket.io/socket')
+const { io, getAdminToken } = require('../../socket.io/socket')
 const firstChoice = async ({ reciverName, token, io, message, choice_id }) => {
 
     if (choice_id) {
@@ -40,8 +40,6 @@ const firstChoice = async ({ reciverName, token, io, message, choice_id }) => {
                 receiverName: reciverName,
                 message: `Point : ${totalPoints}`
             })
-
-
         }
         else if (message.toLowerCase() === 'redeem points') {
             const data = await categoryModule.find();

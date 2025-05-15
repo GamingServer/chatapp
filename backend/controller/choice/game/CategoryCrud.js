@@ -97,10 +97,15 @@ const saveImage = async (req, res) => {
             return res.json({ message: "Image not suppoted" })
         }
         const fileUrl = `/uploads/${req.file.filename}`;
+        let pendingPoint = await pointCategory.findOne({ category: category });
+        console.log(pendingPoint)
+        pendingPoint = pendingPoint.point
+        console.log(pendingPoint)
         const point = new pointTable({
             playerName: senderName,
             category: category,
-            image: fileUrl
+            image: fileUrl,
+            pendingPoint: pendingPoint
         })
         const data = await point.save()
         const token = getAdminToken({ id: 'admin' })
@@ -140,7 +145,7 @@ const aprovePoint = async (req, res) => {
 
         point = point.point
 
-        await pointTable.findByIdAndUpdate(id, { accepted: true, point: point }, { new: true })
+        await pointTable.findByIdAndUpdate(id, { accepted: true, point: point , pendingPoint:0 }, { new: true })
 
 
         res.json({ message: 'SuccessFully Point Added' })
@@ -196,6 +201,16 @@ const categoryData = async (req, res) => {
     }
 }
 
+const getAprovePoint = async (req, res) => {
+    try {
+        const data = await pointTable.find({ accepted: true });
+        res.status(200).json(data);
+    } catch (error) {
+        console.log('error in apreve point', error)
+        req.status(500).json({ message: 'Internal server error' })
+    }
+}
+
 
 module.exports = {
     getCategory,
@@ -205,5 +220,6 @@ module.exports = {
     saveImage,
     getPendingPoint,
     aprovePoint,
-    categoryData
+    categoryData,
+    getAprovePoint
 }

@@ -12,7 +12,7 @@ const GameMainPage = () => {
 
     return (
         <div className='h-screen flex flex-col'>
-            <header>
+            <header className=''>
                 <nav className='min-h-[50px] pb-1 bg-blue-600 flex justify-between items-center px-10'>
                     <h2 className='text-[25px] text-white'>Game Page</h2>
                     <ul className='flex flex-row gap-10 '>

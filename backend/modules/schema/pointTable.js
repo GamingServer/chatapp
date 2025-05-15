@@ -13,6 +13,9 @@ const schema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    pendingPoint: {
+        type: Number,
+    },
     accepted: {
         type: Boolean,
         default: false

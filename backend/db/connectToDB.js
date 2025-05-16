@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const connectToMongodb = async () =>{
+const connectToMongodb = async () => {
     try {
         await mongoose.connect((process.env.MONGO_URI+'chatapp'));
         console.log('Connected to MongoDB');

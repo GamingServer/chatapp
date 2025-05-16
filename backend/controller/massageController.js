@@ -57,12 +57,12 @@ const sendMassage = async (req, res) => {
     await Promise.all([conversation.save(), newMessage.save()])
     const token = getAdminToken({ id: receiverName })
     await io.to(token).emit('receiveMessage', { message: newMessage })
+    await io.to(token).emit('lastMessage',{message:newMessage})
     res.send(newMessage);
     if (!lastMessage.isChoice || !lastMessage && message.choice_id) {
       const token = getAdminToken({id:senderName})
       firstChoice({token:token , reciverName : senderName , io:io,message:message.message , choice_id:message.choice_id});
     }
-
   }
 
 

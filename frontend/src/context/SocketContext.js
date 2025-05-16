@@ -18,17 +18,16 @@ export const SocketContextProvider = ({ children }) => {
     const [onlineUser, setOnlineUser] = useState([]);
 
     useEffect(() => {
-        setInterval(() => {
-            if (isAdmin) {
-                fetch('http://localhost:8080/api/messages/last/msg', {
-                    credentials: 'include'
-                }).then((value) => {
-                    value.json().then((data) => {
-                        setLastMsg(data);
-                    });
-                })
-            }
-        }, 1000)
+
+        if (isAdmin) {
+            fetch('http://localhost:8080/api/messages/last/msg', {
+                credentials: 'include'
+            }).then((value) => {
+                value.json().then((data) => {
+                    setLastMsg(data);
+                });
+            })
+        }
     }, [isAdmin, allUser])
 
 
@@ -64,7 +63,12 @@ export const SocketContextProvider = ({ children }) => {
                 socket.emit('online-user', {}, (value) => {
                     setOnlineUser(value);
                 })
-                
+                socket.on('lastMessage', (value) => {
+                    setLastMsg(prev =>
+                        prev.map(msg => msg.receiverName === value.message.senderName || msg.senderName === value.message.senderName ? value.message : msg)
+                    )
+                })
+
             }
             setSocket(socket)
             return () => socket.close();

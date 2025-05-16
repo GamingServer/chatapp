@@ -7,7 +7,7 @@ const PlayerState = () => {
   const [pendingpoints, setPendingPoints] = useState([]);
   const { socket } = useSocketContext();
   const [categoryData, setCategoryData] = useState([]);
-
+  const [fullMedia, setFullMedia] = useState({ type: '', url: '' });
 
   useEffect(() => {
     try {
@@ -20,7 +20,6 @@ const PlayerState = () => {
         .then((res) => res.json())
         .then((data) => {
           setPendingPoints(data.pendingPoint);
-          console.log(data)
         });
       socket.on('aproveCategory', (data) => {
         if (data.accepted) {
@@ -47,7 +46,6 @@ const PlayerState = () => {
       } else {
         setCategoryData([])
       }
-      console.log(data)
     })
   }, [isApprovePage])
 
@@ -101,14 +99,12 @@ const PlayerState = () => {
                         {item.accepted && item.point > 0 ? 'Yes' : 'No'}
                       </td>
                       <td className="border border-gray-400 px-4 py-2 text-center w-[20%]">
-                        <a
-                          href={'http://localhost:8080' + item.image}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
                           className="text-blue-600"
+                          onClick={() => setFullMedia({ type: 'image', url: `http://localhost:8080${item.image}` })}
                         >
                           Image
-                        </a>
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -145,7 +141,7 @@ const PlayerState = () => {
                         <td className="border border-gray-400 px-4 py-2 text-center w-[15%]">
                           <div className="flex flex-row gap-3 justify-center items-center">
                             <button
-                              className="w-[40%] flex items-center justify-center rounded-lg bg-green-600"
+                              className="w-[40%] flex items-center justify-center rounded-lg bg-green-600 hover:shadow-md duration-100 hover:bg-green-500"
                               onClick={async () => {
                                 try {
                                   const res = await fetch('http://localhost:8080/api/category/aprove/point', {
@@ -177,7 +173,7 @@ const PlayerState = () => {
                               </svg>
                             </button>
                             <button
-                              className="w-[40%] flex items-center justify-center rounded-lg bg-red-600"
+                              className="w-[40%] flex items-center justify-center rounded-lg bg-red-600 hover:shadow-md duration-100 hover:bg-red-500"
                               onClick={async () => {
                                 try {
                                   const res = await fetch('http://localhost:8080/api/category/approve/point', {
@@ -211,14 +207,12 @@ const PlayerState = () => {
                           </div>
                         </td>
                         <td className="border border-gray-400 px-4 py-2 text-center w-[20%]">
-                          <a
-                            href={'http://localhost:8080' + item.image}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
                             className="text-blue-600"
+                            onClick={() => setFullMedia({ type: 'image', url: `http://localhost:8080${item.image}` })}
                           >
                             Image
-                          </a>
+                          </button>
                         </td>
                       </tr>
                     ) : null
@@ -282,6 +276,15 @@ const PlayerState = () => {
           </div>
         )}
       </div>
+      {fullMedia.url && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50" onClick={() => setFullMedia({ type: '', url: '' })}>
+          {fullMedia.type === 'image' ? (
+            <img src={fullMedia.url} alt="Full view" className="max-w-[60%] max-h-[60%] rounded-lg shadow-lg" />
+          ) : (
+            <video src={fullMedia.url} controls className="max-w-[60%] max-h-[60%] rounded-lg shadow-lg" />
+          )}
+        </div>
+      )}
     </div>
   );
 };

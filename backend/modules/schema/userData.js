@@ -23,6 +23,9 @@ const userData = new mongoose.Schema({
     online:{
         type:Boolean,
         default:false
+    },
+    notificationToken:{
+        type:String
     }
 })
 

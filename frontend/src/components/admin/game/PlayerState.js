@@ -176,7 +176,7 @@ const PlayerState = () => {
                               className="w-[40%] flex items-center justify-center rounded-lg bg-red-600 hover:shadow-md duration-100 hover:bg-red-500"
                               onClick={async () => {
                                 try {
-                                  const res = await fetch('http://localhost:8080/api/category/approve/point', {
+                                  const res = await fetch('http://localhost:8080/api/category/aprove/point', {
                                     method: 'POST',
                                     headers: {
                                       'Content-Type': 'application/json',
@@ -184,9 +184,6 @@ const PlayerState = () => {
                                     body: JSON.stringify({ id: item._id, point: 0 }),
                                   });
                                   const data = await res.json();
-                                  if (!res.ok) {
-                                    throw new Error(data.message || 'Failed to reject point');
-                                  }
                                   setPendingPoints((prev) => prev.filter((msg) => msg._id !== item._id));
                                   const updatedItem = {
                                     ...item,

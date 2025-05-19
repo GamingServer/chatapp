@@ -38,6 +38,9 @@ const schema = mongoose.Schema({
     category:{
         type:String,
         default:null
+    },
+    image:{
+        type:String,
     }
 
 }, { timestamps: true });

@@ -1,32 +1,29 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
-import HomePage from './components/homepage/homePage';
-import LoginPage from './components/admin/loginpage/LoginPage';
-import Cookies from 'js-cookie';
-import MainPage from './components/admin/ChatBox/MainPage';
-import { SocketContextProvider } from './context/SocketContext';
-import { AuthContextProvider } from './context/AuthContext';
-import Contect from './contect.js';
-import GameMainPage from './components/admin/game/mainPage.js';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import "./index.css";
+import App from "./app";
+// Contexts
+import { SocketContextProvider } from "./context/SocketContext";
+import { AuthContextProvider } from "./context/AuthContext";
 
-
-const token = Cookies.get('admin');
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
     <AuthContextProvider>
       <SocketContextProvider>
-        <Router>
-          <Routes>
-            <Route path="*" index element={<HomePage />} />
-            <Route path="/admin" element={token ? <MainPage /> : <LoginPage />} />
-            <Route path="/admin/game" element={token ? <GameMainPage /> : <LoginPage />} />
-            <Route path='/contect' element={<Contect />} />
-          </Routes>
-        </Router>
+        <App />
       </SocketContextProvider>
     </AuthContextProvider>
   </React.StrictMode>
 );
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .register("/firebase-messaging-sw.js")
+    .then((registration) => {
+      console.log("Service Worker registered with scope:", registration.scope);
+    })
+    .catch((err) => {
+      console.error("Service Worker registration failed:", err);
+    });
+}

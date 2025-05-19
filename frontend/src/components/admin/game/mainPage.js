@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 const GameMainPage = () => {
 
-    const [selectedMenu, setSelectedMenu] = useState(1);
+    const [selectedMenu, setSelectedMenu] = useState(3);
 
     return (
         <div className='h-screen flex flex-col'>

@@ -12,7 +12,7 @@ const imageUpload = require('./routes/image.js')
 const path = require('path');
 const cookieParser = require('cookie-parser')
 const categoryRouter = require('./routes/categoryRoute.js');
-
+const { initFirebase } = require('./firebase/initFireBase.js');
 
 
 
@@ -57,5 +57,6 @@ app.get('/', (req, res) =>{
 
 server.listen(PORT, async () => {
   await connectToMongodb();
+  await initFirebase();
   console.log(`Server is running on port ${PORT}`);
 });

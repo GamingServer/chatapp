@@ -10,6 +10,13 @@ const {
   getOnlineUsers,
 } = require("../socket.io/socket");
 const path = require("path");
+
+/**
+ * 
+ * @param {*} req 
+ * @param {*} res 
+ * @returns 
+ */
 const sendMassage = async (req, res) => {
   // try {
   const message = req.body;
@@ -92,7 +99,12 @@ const sendMassage = async (req, res) => {
     }
   }
 };
-
+/**
+ * 
+ * @param {*} req 
+ * @param {*} res 
+ * @returns 
+ */
 const getMessage = async (req, res) => {
   try {
     const senderName = req.params.username;
@@ -147,6 +159,11 @@ const getAllUserMsg = async (req, res) => {
   res.json(conversation);
 };
 
+/**
+ * 
+ * @param {*} adminUsername 
+ * @returns 
+ */
 async function getLastMessagesForAdmin(adminUsername = "admin") {
   const lastMessages = await massageModul.aggregate([
     {

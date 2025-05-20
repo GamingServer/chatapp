@@ -4,4 +4,9 @@
 /frontend/dist
 /frontend/build
 
+/frontend/public/firebase-messaging-sw.js
+
+/frontend/src/notification
+/backend/firebase/chatapp-a8048-firebase-adminsdk-fbsvc-374beff29f.json
+
 .env

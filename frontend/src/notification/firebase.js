@@ -22,22 +22,32 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
-
-
 const generateToken = async ({ userId }) => {
   const permission = await Notification.requestPermission();
-  if (permission === "granted") {
-    const token = await getToken(messaging, {
-      vapidKey:
-        "BGHuqZxg0N6FtRWa8GoU4YcjG6ZYYuqmXT9LIhK5Al5xYLn-OGJuYqz3F97yLGEK_J_pDoZflfK6xVIHIexTwYA",
-    });
+  if (permission !== "granted") {
+    console.warn("Notification permission not granted.");
+    return;
+  }
+
+  const registration = await navigator.serviceWorker.getRegistration();
+  if (!registration) {
+    throw new Error("No service worker registration found.");
+  }
+
+  const token = await getToken(messaging, {
+    vapidKey:
+      "BGHuqZxg0N6FtRWa8GoU4YcjG6ZYYuqmXT9LIhK5Al5xYLn-OGJuYqz3F97yLGEK_J_pDoZflfK6xVIHIexTwYA",
+    serviceWorkerRegistration: registration,
+  });
+
+  if (token) {
     await fetch("http://localhost:8080/api/user/getMessageToken", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ userId: userId, token: token }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, token }),
     });
+  } else {
+    throw new Error("Failed to get FCM token.");
   }
 };
 

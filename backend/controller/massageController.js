@@ -64,7 +64,6 @@ const sendMassage = async (req, res) => {
     const token = getAdminToken({ id: receiverName });
     await io.to(token).emit("receiveMessage", { message: newMessage });
     await io.to(token).emit("lastMessage", { message: newMessage });
-    if (receiverName !== "admin") {
       const notifiactiontoken = await userData.findOne({
         username: receiverName,
       });
@@ -77,7 +76,7 @@ const sendMassage = async (req, res) => {
         senderName,
         newMessage.message
       );
-    }
+    
     res.send(newMessage);
     if (!lastMessage.isChoice || (!lastMessage && message.choice_id)) {
       const token = getAdminToken({ id: senderName });
@@ -127,15 +126,14 @@ const getUserForAdmin = async (req, res) => {
   try {
     const data = await userData.find();
 
-    const users = data.map((item) => {
-      const username = item.username;
-      return {
-        name: username,
+    const users = data
+      .filter((item) => item.username !== "admin")
+      .map((item) => ({
+        name: item.username,
         email: item.email,
         phoneNumber: item.phoneNumber,
         image: item.image,
-      };
-    });
+      }));
 
     res.status(200).json(users);
   } catch (e) {

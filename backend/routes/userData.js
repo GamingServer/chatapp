@@ -104,9 +104,17 @@ router.post("/getMessageToken", async (req, res) => {
   const userId = req.body.userId;
   const token = req.body.token;
   try {
-    const user = await UserSchema.findByIdAndUpdate(userId, {
+    if(userId === 'admin'){
+      const user = await UserSchema.findOneAndUpdate({username:'admin'}, {
       notificationToken: token,
     });
+    }
+    else{
+
+      const user = await UserSchema.findByIdAndUpdate(userId, {
+        notificationToken: token,
+      });
+    }
   } catch (error) {
     console.log("error in notification token", error);
   }

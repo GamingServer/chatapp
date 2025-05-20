@@ -1,6 +1,7 @@
 const conversations = require("../modules/schema/conversation");
 const massageModul = require("../modules/schema/massage.modul");
 const userData = require("../modules/schema/userData");
+const { sendNotification } = require("../firebase/initFireBase");
 const {
   io,
   getAdminToken,
@@ -67,6 +68,10 @@ const sendMassage = async (req, res) => {
       const notifiactiontoken = await userData.findOne({
         username: receiverName,
       });
+      if (!notifiactiontoken?.notificationToken) {
+        console.warn(`No valid token for user: ${receiverName}`);
+        return;
+      }
       await sendNotification(
         notifiactiontoken.notificationToken,
         senderName,
@@ -185,7 +190,6 @@ const getLastMsg = async (req, res) => {
 
 const multer = require("multer");
 const { firstChoice } = require("./choice/firstchoice");
-const { sendNotification } = require("../firebase/initFireBase");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {

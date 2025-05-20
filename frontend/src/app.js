@@ -13,57 +13,24 @@ import Contect from "./contect";
 import { useAuthContext } from "./context/AuthContext";
 
 // Notifications
-import { generateToken, messaging, onMessage } from "./notification/firebase";
-import {
-  getDatabase,
-  ref,
-  onDisconnect,
-  set,
-  onValue,
-} from "firebase/database";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { getApp } from "firebase/app";
+import { generateToken, messaging } from "./notification/firebase";
+import { onMessage } from "firebase/messaging";
+
 
 const App = () => {
   const { authUser } = useAuthContext();
-  useEffect(() => {
-    if (!authUser) return;
-
-    const db = getDatabase(getApp());
-    const userStatusRef = ref(db, `/status/${authUser._id}`);
-    const connectedRef = ref(db, ".info/connected");
-
-    onValue(connectedRef, (snapshot) => {
-      if (snapshot.val() === false) return;
-
-      onDisconnect(userStatusRef)
-        .set({
-          state: "offline",
-          lastChanged: Date.now(),
-        })
-        .then(() => {
-          set(userStatusRef, {
-            state: "online",
-            lastChanged: Date.now(),
-          });
-        });
-    });
-  }, [authUser]);
   const token = Cookies.get("admin");
-
   useEffect(() => {
     if (!authUser) return;
 
     generateToken({ userId: authUser._id });
 
-    const unsubscribe = onMessage(messaging, (payload) => {
-      console.log("Foreground message received:", payload);
+    onMessage( messaging ,(payload) => {
       toast(payload.notification?.body || "New notification", {
         duration: 3000,
       });
     });
 
-    return () => unsubscribe();
   }, [authUser]);
 
   return (

@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
+// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
-
+import { getMessaging, getToken } from "firebase/messaging";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -10,6 +10,7 @@ import { getMessaging, getToken, onMessage } from "firebase/messaging";
 const firebaseConfig = {
   apiKey: "AIzaSyBd0xoqTlMRA1AFtlKNKjcxmeHbM_U8Z84",
   authDomain: "chatapp-a8048.firebaseapp.com",
+  databaseURL: "https://chatapp-a8048-default-rtdb.firebaseio.com",
   projectId: "chatapp-a8048",
   storageBucket: "chatapp-a8048.firebasestorage.app",
   messagingSenderId: "776404544864",
@@ -21,17 +22,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
+
+
 const generateToken = async ({ userId }) => {
   const permission = await Notification.requestPermission();
   if (permission === "granted") {
-    const registration = await navigator.serviceWorker.getRegistration();
-    if (!registration) {
-      return;
-    }
     const token = await getToken(messaging, {
       vapidKey:
         "BGHuqZxg0N6FtRWa8GoU4YcjG6ZYYuqmXT9LIhK5Al5xYLn-OGJuYqz3F97yLGEK_J_pDoZflfK6xVIHIexTwYA",
-      serviceWorkerRegistration: registration,
     });
     await fetch("http://localhost:8080/api/user/getMessageToken", {
       method: "POST",
@@ -43,4 +41,4 @@ const generateToken = async ({ userId }) => {
   }
 };
 
-export { generateToken, messaging, onMessage };
+export { generateToken, messaging };

@@ -27,25 +27,12 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  self.clients
-    .matchAll({ type: "window", includeUncontrolled: true })
-    .then((clients) => {
-      const isFocused = clients.some((client) => client.focused);
+  // Customize notification here
+  const notificationTitle = payload.notification.title;
+  const notificationOptions = {
+    body: payload.notification.body,
+    icon: '/favicon.png'
+  };
 
-      if (!isFocused) {
-        const notificationTitle = payload.notification.title;
-        const notificationOptions = {
-          body: payload.notification.body,
-          icon: "/favicon.ico",
-        };
-        self.registration.showNotification(
-          notificationTitle,
-          notificationOptions
-        );
-      } else {
-        console.log(
-          "User is active in a focused tab — notification suppressed"
-        );
-      }
-    });
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });

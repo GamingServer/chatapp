@@ -19,6 +19,7 @@ import { onMessage } from "firebase/messaging";
 const App = () => {
   const { authUser, isAdmin } = useAuthContext();
   const token = Cookies.get("admin");
+  
   useEffect(() => {
     if (!authUser) return;
 

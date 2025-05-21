@@ -10,11 +10,10 @@ const initFirebase = async () => {
 };
 
 /**
- * Sends a push notification only if user is offline
- * @param {string} userId - Firebase UID or your own user ID
- * @param {string} deviceToken - FCM device token
- * @param {string} title - Notification title
- * @param {string} body - Notification body
+ * 
+ * @param {*} deviceToken 
+ * @param {*} title 
+ * @param {*} body 
  */
 const sendNotification = async (deviceToken, title, body) => {
   try {

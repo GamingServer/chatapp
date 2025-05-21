@@ -12,10 +12,10 @@ const {
 const path = require("path");
 
 /**
- * 
- * @param {*} req 
- * @param {*} res 
- * @returns 
+ *
+ * @param {*} req
+ * @param {*} res
+ * @returns
  */
 const sendMassage = async (req, res) => {
   // try {
@@ -71,19 +71,19 @@ const sendMassage = async (req, res) => {
     const token = getAdminToken({ id: receiverName });
     await io.to(token).emit("receiveMessage", { message: newMessage });
     await io.to(token).emit("lastMessage", { message: newMessage });
-      const notifiactiontoken = await userData.findOne({
-        username: receiverName,
-      });
-      if (!notifiactiontoken?.notificationToken) {
-        console.warn(`No valid token for user: ${receiverName}`);
-        return;
-      }
-      await sendNotification(
-        notifiactiontoken.notificationToken,
-        senderName,
-        newMessage.message
-      );
-    
+    const notifiactiontoken = await userData.findOne({
+      username: receiverName,
+    });
+    if (!notifiactiontoken?.notificationToken) {
+      console.warn(`No valid token for user: ${receiverName}`);
+      return;
+    }
+    await sendNotification(
+      notifiactiontoken.notificationToken,
+      senderName,
+      newMessage.message
+    );
+
     res.send(newMessage);
     if (!lastMessage.isChoice || (!lastMessage && message.choice_id)) {
       const token = getAdminToken({ id: senderName });
@@ -100,10 +100,10 @@ const sendMassage = async (req, res) => {
   }
 };
 /**
- * 
- * @param {*} req 
- * @param {*} res 
- * @returns 
+ *
+ * @param {*} req
+ * @param {*} res
+ * @returns
  */
 const getMessage = async (req, res) => {
   try {
@@ -136,8 +136,9 @@ const getMessage = async (req, res) => {
 
 const getUserForAdmin = async (req, res) => {
   try {
-    const data = await userData.find();
+    const role = req.body.role;
 
+    const data = await userData.find({ access: { $in: [role] } });
     const users = data
       .filter((item) => item.username !== "admin")
       .map((item) => ({
@@ -145,6 +146,7 @@ const getUserForAdmin = async (req, res) => {
         email: item.email,
         phoneNumber: item.phoneNumber,
         image: item.image,
+        role: item.access,
       }));
 
     res.status(200).json(users);
@@ -160,9 +162,9 @@ const getAllUserMsg = async (req, res) => {
 };
 
 /**
- * 
- * @param {*} adminUsername 
- * @returns 
+ *
+ * @param {*} adminUsername
+ * @returns
  */
 async function getLastMessagesForAdmin(adminUsername = "admin") {
   const lastMessages = await massageModul.aggregate([

@@ -104,19 +104,73 @@ router.post("/getMessageToken", async (req, res) => {
   const userId = req.body.userId;
   const token = req.body.token;
   try {
-    if(userId === 'admin'){
-      const user = await UserSchema.findOneAndUpdate({username:'admin'}, {
-      notificationToken: token,
-    });
-    }
-    else{
-
+    if (userId === "admin") {
+      const user = await UserSchema.findOneAndUpdate(
+        { username: "admin" },
+        {
+          notificationToken: token,
+        }
+      );
+    } else {
       const user = await UserSchema.findByIdAndUpdate(userId, {
         notificationToken: token,
       });
     }
   } catch (error) {
     console.log("error in notification token", error);
+  }
+});
+
+router.post("/add/admin/role", async (req, res) => {
+  try {
+    const { userId, role } = req.body; 
+    if (!userId || !role) {
+      return res.status(400).json({ message: "userId and role are required" });
+    }
+
+    const dbres = await UserSchema.findOneAndUpdate(
+      { username: userId }, 
+      { $addToSet: { access: role } }, 
+      { new: true, runValidators: true } 
+    );
+
+    if (!dbres) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    console.log("Updated user:", dbres);
+    res
+      .status(200)
+      .json({ message: "Role added successfully", access: dbres.access });
+  } catch (error) {
+    console.error("Error in add admin role:", error);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+});
+
+router.delete("/remove/admin/role", async (req, res) => {
+  try {
+    const { userId, role } = req.body; 
+    if (!userId || !role) {
+      return res.status(400).json({ message: "userId and role are required" });
+    }
+
+    const dbres = await UserSchema.findOneAndUpdate(
+      { username: userId }, 
+      { $pull: { access: role } },
+      { new: true, runValidators: true } 
+    );
+
+    if (!dbres) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    console.log("Updated user:", dbres);
+    res.status(200).json({ message: "Role deleted successfully", access: dbres.access });
+  } catch (error) {
+    console.error("Error in delete admin role:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
   }
 });
 

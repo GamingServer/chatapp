@@ -5,7 +5,7 @@ const router = require('express').Router();
 
 router.post('/sendmsg/:username/:receiverName',sendMassage);
 router.get('/getmsg/:username/:receiverName',getMessage);
-router.get('/getall/admin',getUserForAdmin);
+router.post('/getall/admin',getUserForAdmin);
 router.get('/all/getall',getAllUserMsg)
 router.get('/last/msg',getLastMsg)
 router.post('/upload/image/:senderName/:receiverName',upload.single('file'),saveImage)

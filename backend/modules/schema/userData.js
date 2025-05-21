@@ -26,6 +26,10 @@ const userData = new mongoose.Schema({
     },
     notificationToken:{
         type:String
+    },
+    access:{
+        type:[String],
+        default:['admin']
     }
 })
 

@@ -1,10 +1,9 @@
-import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import Category from './category';
 import PlayerState from './PlayerState';
 import Round from './Round';
-import Point from './Point';
 import { AnimatePresence, motion } from 'framer-motion';
+import AdminRole from './adminRole';
 
 const GameMainPage = () => {
 
@@ -38,7 +37,7 @@ const GameMainPage = () => {
                             onClick={() => {
                                 setSelectedMenu(4)
                             }}>
-                            Point
+                            Admin Role
                         </li>
                     </ul>
                 </nav>
@@ -54,7 +53,7 @@ const GameMainPage = () => {
                             transition={{ duration: 0.3 }}
                             className="absolute w-full h-full"
                         >
-                            <Point/>
+                            <AdminRole/>
                         </motion.div>
                     ) : selectedMenu === 2 ? (
                         <motion.div

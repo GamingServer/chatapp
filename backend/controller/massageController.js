@@ -23,7 +23,7 @@ const path = require("path");
  */
 const sendMassage = async (req, res) => {
   try {
-    const { message: msgContent } = req.body;
+    const  message  = req.body;
     const senderName = req.params.username;
     const receiverName = req.params.receiverName;
 
@@ -37,7 +37,6 @@ const sendMassage = async (req, res) => {
     if (!sender || !receiver)
       return res.status(404).json({ error: "User not found" });
 
-    // Find existing conversation
     let conversation = await prisma.Conversations.findFirst({
       where: {
         AND: [
@@ -47,7 +46,6 @@ const sendMassage = async (req, res) => {
       },
     });
 
-    // Create if not exists
     if (!conversation) {
       conversation = await prisma.Conversations.create({
         data: {
@@ -58,7 +56,6 @@ const sendMassage = async (req, res) => {
       });
     }
 
-    // Determine message status
     let status = "sent";
     if (isUserOnline?.({ id: receiverName })) {
       if (
@@ -71,12 +68,11 @@ const sendMassage = async (req, res) => {
       }
     }
 
-    // Create the message
     const newMessage = await prisma.Message.create({
       data: {
         senderId: sender.id,
         reciverId: receiver.id,
-        message: msgContent,
+        message: message.message,
         status,
       },
       include: {
@@ -85,37 +81,63 @@ const sendMassage = async (req, res) => {
       },
     });
 
-    await prisma.Conversations.update({
-      where: { id: conversation.id },
-      data: {
-        messages: {
-          connect: { id: newMessage.id },
+    if (newMessage) {
+      const lastMessage = await prisma.Message.findFirst({
+        where: {
+          sender: {
+            isAdmin: false,
+          },
+          reciverId: receiver.id,
         },
-      },
-    });
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+      await prisma.Conversations.update({
+        where: { id: conversation.id },
+        data: {
+          messages: {
+            connect: { id: newMessage.id },
+          },
+        },
+      });
 
-    // Emit message
-    const token = getAdminToken?.({ id: receiverName });
-    if (token) {
-      io.to(token).emit("receiveMessage", { message: newMessage });
-      io.to(token).emit("lastMessage", { message: newMessage });
+      // Emit message
+      const token = getAdminToken?.({ id: receiverName });
+      if (token) {
+        io.to(token).emit("receiveMessage", { message: newMessage });
+        io.to(token).emit("lastMessage", { message: newMessage });
+      }
+
+      // Push notification
+      const notifiactiontoken = await prisma.Users.findUnique({
+        where: { username: receiverName },
+        select: { notificationToken: true },
+      });
+
+      if (notifiactiontoken?.notificationToken) {
+        await sendNotification(
+          notifiactiontoken.notificationToken,
+          senderName,
+          message.message
+        );
+      }
+
+      res.json(newMessage);
+      if (!lastMessage.isChoice || (!lastMessage && message.choice_id)) {
+        const token = getAdminToken({ id: senderName });
+        if (!sender.isAdmin) {
+
+          firstChoice({
+            token: token,
+            reciverId: sender.id,
+            io: io,
+            message: message.message,
+            choice_id: message.choice_id,
+          });
+        }
+      }
     }
-
-    // Push notification
-    const notifiactiontoken = await prisma.Users.findUnique({
-      where: { username: receiverName },
-      select: { notificationToken: true },
-    });
-
-    if (notifiactiontoken?.notificationToken) {
-      await sendNotification(
-        notifiactiontoken.notificationToken,
-        senderName,
-        msgContent
-      );
-    }
-
-    res.json(newMessage);
   } catch (e) {
     console.error("Error in sendMassage controller:", e);
     res.status(500).json({ error: "Internal server error" });
@@ -285,6 +307,7 @@ const getLastMsg = async (req, res) => {
 };
 
 const multer = require("multer");
+const { connect } = require("http2");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -318,41 +341,65 @@ const saveImage = async (req, res) => {
     //   type: "image",
     // });
 
-    const senderId = await prisma.Users.findOne({
+    const senderId = await prisma.Users.findUnique({
       where: { username: senderName },
-    })
-    const receiverId = await prisma.Users.findOne({
+    });
+    const receiverId = await prisma.Users.findUnique({
       where: { username: receiverName },
-    })
-    
+    });
+
+    let conversation = await prisma.Conversations.findFirst({
+      where: {
+        AND: [
+          { participants: { some: { id: senderId.id } } },
+          { participants: { some: { id: receiverId.id } } },
+        ],
+      },
+    });
+
+    if (!conversation) {
+      conversation = await prisma.Conversations.create({
+        data: {
+          participants: {
+            connect: [{ id: senderId.id }, { id: receiverId.id }],
+          },
+        },
+      });
+    }
     const newMessage = await prisma.Message.create({
-      data:{
+      data: {
         senderId: senderId.id,
         reciverId: receiverId.id,
         message: fileUrl,
         status: "sent",
         type: "image",
-      }
-    })
-    // const data = await newMessage.save();
-
-    let conversation = await conversations.findOne({
-      participants: { $all: [senderName, receiverName] },
+      },
+      include: {
+        sender: { select: { username: true } },
+        reciver: { select: { username: true } },
+      },
     });
 
-    if (!conversation) {
-      conversation = await conversations.create({
-        participants: [senderName, receiverName],
-      });
-    }
+    await prisma.Conversations.update({
+      where: { id: conversation.id },
+      data: {
+        messages: {
+          connect: {
+            id: newMessage.id,
+          },
+        },
+      },
+    });
 
-    conversation.messages.push(newMessage._id);
-    await conversation.save();
+    // const data = await newMessage.save();
+
+    // conversation.messages.push(newMessage._id);
+    // await conversation.save();
 
     const token = getAdminToken({ id: receiverName });
     await io.to(token).emit("receiveMessage", { message: newMessage });
 
-    res.status(200).json(data);
+    res.status(200).json(newMessage);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
@@ -369,33 +416,73 @@ const saveVideo = async (req, res) => {
 
     const fileUrl = `/uploads/${req.file.filename}`;
 
-    const newMessage = new massageModul({
-      senderName,
-      receiverName,
-      message: fileUrl,
-      status: "sent",
-      type: "video",
+    // const newMessage = new massageModul({
+    //   senderName,
+    //   receiverName,
+    //   message: fileUrl,
+    //   status: "sent",
+    //   type: "video",
+    // });
+    const senderId = await prisma.Users.findUnique({
+      where: { username: senderName },
+    });
+    const reciverId = await prisma.Users.findUnique({
+      where: { username: receiverName },
     });
 
-    const data = await newMessage.save();
+    const newMessage = await prisma.Message.create({
+      data: {
+        senderId: senderId.id,
+        reciverId: reciverId.id,
+        message: fileUrl,
+        status: "sent",
+        type: "video",
+      },
+      include: {
+        sender: { select: { username: true } },
+        reciver: { select: { username: true } },
+      },
+    });
 
-    let conversation = await conversations.findOne({
-      participants: { $all: [senderName, receiverName] },
+    // const data = await newMessage.save();
+
+    let conversation = await prisma.Conversations.findFirst({
+      where: {
+        AND: [
+          { participants: { some: { id: senderId.id } } },
+          { participants: { some: { id: reciverId.id } } },
+        ],
+      },
     });
 
     if (!conversation) {
-      conversation = await conversations.create({
-        participants: [senderName, receiverName],
+      conversation = await prisma.Conversations.create({
+        data: {
+          participants: {
+            connect: [{ id: senderId.id }, { id: reciverId.id }],
+          },
+        },
       });
     }
 
-    conversation.messages.push(newMessage._id);
-    await conversation.save();
+    await prisma.Conversations.update({
+      where: { id: conversation.id },
+      data: {
+        messages: {
+          connect: {
+            id: newMessage.id,
+          },
+        },
+      },
+    });
+
+    // conversation.messages.push(newMessage._id);
+    // await conversation.save();
 
     const token = getAdminToken({ id: receiverName });
     await io.to(token).emit("receiveMessage", { message: newMessage });
 
-    res.status(200).json(data);
+    res.status(200).json(newMessage);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });

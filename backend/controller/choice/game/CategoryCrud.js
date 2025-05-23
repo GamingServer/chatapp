@@ -1,11 +1,15 @@
-const massageModul = require("../../../modules/schema/massage.modul");
-const pointCategory = require("../../../modules/schema/pointCategory");
-const pointTable = require("../../../modules/schema/pointTable");
+// const massageModul = require("../../../modules/schema/massage.modul");
+// const pointCategory = require("../../../modules/schema/pointCategory");
+// const pointTable = require("../../../modules/schema/pointTable");
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 const { io, getAdminToken } = require("../../../socket.io/socket");
+const { where } = require("../../../modules/schema/conversation");
 
 const getCategory = async (req, res) => {
   try {
-    const data = await pointCategory.find();
+    // const data = await pointCategory.find();
+    const data = await prisma.Category.findMany();
     res.json(data);
   } catch (error) {
     console.log("error in getCategory ", error);
@@ -28,17 +32,30 @@ const addCategory = async (req, res) => {
     ) {
       return res.status(400).json({ message: "Category is required" });
     }
-    const existingCategory = await pointCategory.findOne({ name: category });
+    // const existingCategory = await pointCategory.findOne({ name: category });\
+    const existingCategory = await prisma.Category.findUnique({
+      where: {
+        category: category,
+      },
+    });
     if (existingCategory) {
       return res.status(400).json({ message: "Category already exists" });
     }
-    const newCategory = new pointCategory({
-      category: category.trim(),
-      point: point,
-      isLimit: isLimit,
-      MaxPlayerLimit: MaxPlayerLimit,
+    // const newCategory = new pointCategory({
+    //   category: category.trim(),
+    //   point: point,
+    //   isLimit: isLimit,
+    //   MaxPlayerLimit: MaxPlayerLimit,
+    // });
+    const newCategory = await prisma.Category.create({
+      data: {
+        category: category.trim(),
+        point: point,
+        isLimit: isLimit,
+        MaxPlayerLimit: MaxPlayerLimit,
+      },
     });
-    await newCategory.save();
+    // await newCategory.save();
     return res.json({
       message: "Category added successfully",
       newCategory: newCategory,
@@ -63,15 +80,31 @@ const editeCategory = async (req, res) => {
     ) {
       return res.status(400).json({ message: "Category is required" });
     }
-    const existingCategory = await pointCategory.findOne({ _id: id });
+    // const existingCategory = await pointCategory.findOne({ _id: id });
+    const existingCategory = await prisma.Category.findUnique({
+      where: {
+        id: parseInt(id),
+      },
+    });
+    console.log(existingCategory);
     if (!existingCategory) {
       return res.status(400).json({ message: "Category not found" });
     }
-    const updatedCategory = await pointCategory.findByIdAndUpdate(
-      id,
-      { category: category, point: point },
-      { new: true }
-    );
+    // const updatedCategory = await pointCategory.findByIdAndUpdate(
+    //   id,
+    //   { category: category, point: point },
+    //   { new: true }
+    // );
+    const updatedCategory = await prisma.Category.update({
+      where: {
+        id: parseInt(id),
+      },
+      data: {
+        category: category,
+        point: parseInt(point),
+      },
+    });
+    console.log(updatedCategory);
     res.json({
       message: "Category Updated Successfully",
     });
@@ -86,7 +119,12 @@ const editeCategory = async (req, res) => {
 const deleteCategory = async (req, res) => {
   try {
     const id = req.params.id;
-    const category = await pointCategory.findByIdAndDelete(id);
+    // const category = await pointCategory.findByIdAndDelete(id);
+    const category = await prisma.Category.delete({
+      where: {
+        id: parseInt(id),
+      },
+    });
     if (!category) {
       return res.status(400).json({ message: "Category not found" });
     }
@@ -102,55 +140,158 @@ const deleteCategory = async (req, res) => {
 const saveImage = async (req, res) => {
   try {
     const { senderName, receiverName } = req.params;
+    const senderId = await prisma.Users.findUnique({
+      where: {
+        username: senderName,
+      },
+    });
     const messageId = req.body.messageId;
     const category = req.body.category;
     if (!req.file) {
       return res.json({ message: "Image not suppoted" });
     }
     const fileUrl = `/uploads/${req.file.filename}`;
-    let categoryData = await pointCategory.findOne({ category: category });
+    // let categoryData = await pointCategory.findOne({ category: category });
+    let categoryData = await prisma.Category.findUnique({
+      where: {
+        category: category,
+      },
+    });
     let point;
-    const messageData = await massageModul.findByIdAndUpdate(
-      messageId,
-      { $set: { isUsed: true, image: fileUrl } },
-      { new: true }
-    );
+    // const messageData = await massageModul.findByIdAndUpdate(
+    //   messageId,
+    //   { $set: { isUsed: true, image: fileUrl } },
+    //   { new: true }
+    // );
+    const messageData = await prisma.Message.update({
+      where: {
+        id: parseInt(messageId),
+      },
+      data: {
+        isUsed: true,
+        image: fileUrl,
+      },
+      include: {
+        sender: {
+          select: {
+            username: true,
+          },
+        },
+        reciver: {
+          select: {
+            username: true,
+          },
+        },
+      },
+    });
 
     if (categoryData.isLimit) {
       if (categoryData.roundPlayedByPlayers < categoryData.MaxPlayerLimit) {
-        point = new pointTable({
-          playerName: senderName,
-          category: category,
-          image: fileUrl,
-          pendingPoint: categoryData.point,
+        // point = new pointTable({
+        //   playerName: senderName,
+        //   category: category,
+        //   image: fileUrl,
+        //   pendingPoint: categoryData.point,
+        // });
+        point = await prisma.PointTable.create({
+          data: {
+            userId: senderId.id,
+            categoryId: categoryData.id,
+            image: fileUrl,
+            pendingPoint: categoryData.point,
+          },
+          include: {
+            users: {
+              select: {
+                username: true,
+              },
+            },
+            category: {
+              select: {
+                category: true,
+              },
+            },
+          },
         });
       }
-      await pointCategory.findOneAndUpdate(
-        { category: categoryData.category },
-        {
-          $inc: { roundPlayedByPlayers: 1 },
-        }
-      );
-      point = new pointTable({
-        playerName: senderName,
-        category: category,
-        image: fileUrl,
-        pendingPoint: 0,
-        accepted: true,
-        point: 0,
+      // await pointCategory.findOneAndUpdate(
+      //   { category: categoryData.category },
+      //   {
+      //     $inc: { roundPlayedByPlayers: 1 },
+      //   }
+      // );
+      await prisma.Category.update({
+        where: {
+          category: categoryData.category,
+        },
+        date: {
+          roundPlayedByPlayers: {
+            increment: 1,
+          },
+        },
+      });
+      // point = new pointTable({
+      //   playerName: senderName,
+      //   category: category,
+      //   image: fileUrl,
+      //   pendingPoint: 0,
+      //   accepted: true,
+      //   point: 0,
+      // });
+      point = await prisma.PointTable.create({
+        data: {
+          userId: senderId.id,
+          categoryId: categoryData.id,
+          image: fileUrl,
+          pendingPoint: 0,
+          accepted: true,
+          point: 0,
+        },
+        include: {
+          users: {
+            select: {
+              username: true,
+            },
+          },
+          category: {
+            select: {
+              category: true,
+            },
+          },
+        },
       });
     } else if (!categoryData.isLimit) {
-      point = new pointTable({
-        playerName: senderName,
-        category: category,
-        image: fileUrl,
-        pendingPoint: categoryData.point,
+      // point = new pointTable({
+      //   playerName: senderName,
+      //   category: category,
+      //   image: fileUrl,
+      //   pendingPoint: categoryData.point,
+      // });
+      point = await prisma.PointTable.create({
+        data: {
+          userId: senderId.id,
+          categoryId: categoryData.id,
+          image: fileUrl,
+          pendingPoint: categoryData.point,
+        },
+        include: {
+          users: {
+            select: {
+              username: true,
+            },
+          },
+          category: {
+            select: {
+              category: true,
+            },
+          },
+        },
       });
     }
-    const data = await point.save();
+    // const data = await point.save();
     res.status(200).json(messageData);
     const token = getAdminToken({ id: "admin" });
-    io.to(token).emit("aproveCategory", data);
+    io.to(token).emit("aproveCategory", point);
   } catch (error) {
     console.log("error in image save in category", error);
     res.status(500).json({
@@ -161,7 +302,24 @@ const saveImage = async (req, res) => {
 
 const getPendingPoint = async (req, res) => {
   try {
-    const pendingPoint = await pointTable.find({ accepted: false });
+    // const pendingPoint = await pointTable.find({ accepted: false });
+    const pendingPoint = await prisma.PointTable.findMany({
+      where: {
+        accepted: false,
+      },
+      include: {
+        users: {
+          select: {
+            username: true,
+          },
+        },
+        category: {
+          select: {
+            category: true,
+          },
+        },
+      },
+    });
     if (!pendingPoint) {
       return res.json({ message: "No pending points" });
     }
@@ -176,42 +334,124 @@ const aprovePoint = async (req, res) => {
   try {
     const id = req.body.id;
     let point = req.body?.point;
-
-    if (point <= 0) {
-      const db = await pointTable.findByIdAndUpdate(
-        id,
-        { accepted: true, point: point },
-        { new: true }
-      );
+    if (parseInt(point) <= 0) {
+      // const db = await pointTable.findByIdAndUpdate(
+      //   id,
+      //   { accepted: true, point: point },
+      //   { new: true }
+      // );
+      const db = await prisma.PointTable.update({
+        where: {
+          id: parseInt(id),
+        },
+        data: {
+          accepted: true,
+          point: parseInt(point),
+        },
+        include: {
+          users: {
+            select: {
+              username: true,
+            },
+          },
+          category: {
+            select: {
+              category: true,
+            },
+          },
+        }
+      });
+      await prisma.Category.update({
+        where: {
+          id: db.categoryId,
+        },
+        data: {
+          roundPlayedByPlayers: {
+            increment: 1,
+          },
+        },
+      });
+      return res.json(db);
     }
-    const db = await pointTable.findById(id);
-    const categoryData = await pointCategory.findOne({ category: db.category });
+    // const db = await pointTable.findById(id);
+    const db = await prisma.PointTable.findUnique({
+      where: {
+        id: parseInt(id),
+      },
+    });
+    // console.log("db:", db);
+    // const categoryData = await pointCategory.findOne({ category: db.category });
+    const categoryData = await prisma.Category.findUnique({
+      where: {
+        id: db.categoryId,
+      },
+    });
 
     if (categoryData.isLimit) {
       if (categoryData.roundPlayedByPlayers < categoryData.MaxPlayerLimit) {
-        await pointTable.findByIdAndUpdate(
-          id,
-          { accepted: true, point: categoryData.point, pendingPoint: 0 },
-          { new: true }
-        );
+        // await pointTable.findByIdAndUpdate(
+        //   id,
+        //   { accepted: true, point: categoryData.point, pendingPoint: 0 },
+        //   { new: true }
+        // );
+        await prisma.PointTable.update({
+          where: {
+            id: parseInt(id),
+          },
+          data: {
+            accepted: true,
+            point: categoryData.point,
+            pendingPoint: 0,
+          },
+        });
       }
-      await pointTable.findByIdAndUpdate(
-        id,
-        { accepted: true, point: 0, pendingPoint: 0 },
-        { new: true }
-      );
-      await pointCategory.findOneAndUpdate(
-        { category: db.category },
-        {
-          $inc: { roundPlayedByPlayers: 1 },
-        }
-      );
+      // await pointTable.findByIdAndUpdate(
+      //   id,
+      //   { accepted: true, point: 0, pendingPoint: 0 },
+      //   { new: true }
+      // );
+      await prisma.PointTable.update({
+        where: {
+          id: parseInt(id),
+        },
+        data: {
+          accepted: true,
+          point: 0,
+          pendingPoint: 0,
+        },
+      });
+      // await pointCategory.findOneAndUpdate(
+      //   { category: db.category },
+      //   {
+      //     $inc: { roundPlayedByPlayers: 1 },
+      //   }
+      // );
+      await prisma.Category.update({
+        where: {
+          category: db.category,
+        },
+        data: {
+          roundPlayedByPlayers: {
+            increment: 1,
+          },
+        },
+      });
     } else {
-      await pointTable.findByIdAndUpdate(
-        id,
-        { accepted: true, point: categoryData.point, pendingPoint: 0 },
-        { new: true }
-      );
+      // await pointTable.findByIdAndUpdate(
+      //   id,
+      //   { accepted: true, point: categoryData.point, pendingPoint: 0 },
+      //   { new: true }
+      // );
+      await prisma.PointTable.update({
+        where: {
+          id: parseInt(id),
+        },
+        data: {
+          accepted: true,
+          point: categoryData.point,
+          pendingPoint: 0,
+        },
+      });
     }
     res.json({ message: "SuccessFully Point Added" });
   } catch (error) {
@@ -223,7 +463,14 @@ const aprovePoint = async (req, res) => {
 const categoryData = async (req, res) => {
   try {
     const category = req.params.category;
-    const categoryData = await pointTable.find({ category: category });
+    // const categoryData = await pointTable.find({ category: category });
+    const categoryData = await prisma.PointTable.findMany({
+      where: {
+        category: {
+          category: category,
+        },
+      },
+    });
     let finalData;
 
     if (categoryData.length > 0) {
@@ -268,6 +515,12 @@ const categoryData = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+/**
+ *
+ * @param {*} categories
+ * @param {*} playerData
+ * @returns
+ */
 const transformData = (categories, playerData) => {
   if (!categories || categories.length === 0) return [];
 
@@ -339,8 +592,14 @@ const transformData = (categories, playerData) => {
 
 const getAllcategoryData = async (req, res) => {
   try {
-    const playerData = await pointTable.find();
-    const category = await pointCategory.find({}, { category: 1 });
+    // const playerData = await pointTable.find();
+    const playerData = await prisma.PointTable.findMany();
+    // const category = await pointCategory.find({}, { category: 1 });
+    const category = await prisma.Category.findMany({
+      select: {
+        category: true,
+      },
+    });
     const transformedData = transformData(category, playerData);
     res.json(transformedData);
   } catch (e) {
@@ -351,7 +610,24 @@ const getAllcategoryData = async (req, res) => {
 
 const getAprovePoint = async (req, res) => {
   try {
-    const data = await pointTable.find({ accepted: true });
+    // const data = await pointTable.find({ accepted: true });
+    const data = await prisma.PointTable.findMany({
+      where: {
+        accepted: true,
+      },
+      include: {
+        users: {
+          select: {
+            username: true,
+          },
+        },
+        category: {
+          select: {
+            category: true,
+          },
+        },
+      },
+    });
     res.status(200).json(data);
   } catch (error) {
     console.log("error in apreve point", error);
@@ -371,4 +647,3 @@ module.exports = {
   getAprovePoint,
   getAllcategoryData,
 };
-  

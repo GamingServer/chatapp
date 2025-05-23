@@ -75,7 +75,7 @@ model VerifyOtpTemps {
 
 model Category {
   id                   Int          @id @default(autoincrement())
-  category             String
+  category             String       @unique
   point                Int          @default(0)
   isLimit              Boolean      @default(false)
   MaxPlayerLimit       Int          @default(0)

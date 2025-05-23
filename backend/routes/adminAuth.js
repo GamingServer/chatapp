@@ -1,17 +1,32 @@
 const router = require("express").Router();
-const adminRole = require("../modules/schema/adminroles");
-const admins = require("../modules/schema/admins");
+const {PrismaClient} = require('@prisma/client')
+const prisma = new PrismaClient()
+// const adminRole = require("../modules/schema/adminroles");
+// const admins = require("../modules/schema/admins");
 router.post("/login", async (req, res) => {
   const username = req.body?.username;
   const password = req.body?.password;
-  const admindata = await admins.findOne({ username: username });
+  const admindata = await prisma.users.findUnique({
+    where:{
+      username:username
+    },
+    include:{
+      adminrole:{
+        select:{
+          role:true
+        }
+      }
+    }
+  })
   if (
     admindata &&
     username === admindata.username &&
-    password === admindata.password
+    password === admindata.password &&
+    admindata.isAdmin
   ) {
+    console.log(admindata)
     return res
-      .cookie("role", admindata.role)
+      .cookie("role", admindata.adminrole.role)
       .status(200)
       .json({ message: "Login successful" });
   } else {
@@ -21,7 +36,8 @@ router.post("/login", async (req, res) => {
 
 router.get("/get/adminroles", async (req, res) => {
   try {
-    let role = await adminRole.find();
+    // let role = await adminRole.find();
+    let role = await prisma.AdminRoles.findMany();
     role = role.filter((item) => item.role !== "admin");
     return res.status(200).json(role);
   } catch (error) {

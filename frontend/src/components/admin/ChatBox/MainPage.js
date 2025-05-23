@@ -68,8 +68,8 @@ const MainPage = () => {
             const lastMessage = Array.isArray(lastMsg)
               ? lastMsg.find(
                   (msg) =>
-                    msg.senderName === user.name ||
-                    msg.receiverName === user.name
+                    msg.sender.username === user.name ||
+                    msg.reciver.username === user.name
                 )
               : null;
 

@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id                Int             @id @default(autoincrement())
+  username          String          @unique
+  email             String?         @unique
+  phonenumber       String?         @unique
+  password          String?
+  image             String?
+  online            Boolean         @default(false)
+  notificationToken String?
+  access            String[]        @default(["admin"])
+  roleId            Int?
+  isAdmin           Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  adminrole         AdminRoles?     @relation(fields: [roleId], references: [id])
+  sender            Message[]       @relation("sender")
+  reciver           Message[]       @relation("reciver")
+  conversation      Conversations[]
+  pointtable        PointTable[]
+
+  @@map("users")
+}
+
+model Message {
+  id             Int             @id @default(autoincrement())
+  senderId       Int
+  reciverId      Int
+  message        String
+  choice         String[]
+  status         String          @default("sent")
+  type           String?
+  isChoice       Boolean         @default(false)
+  selectedChoice String?
+  isUsed         Boolean         @default(false)
+  category       String?
+  image          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  sender         Users           @relation("sender", fields: [senderId], references: [id])
+  reciver        Users           @relation("reciver", fields: [reciverId], references: [id])
+  conversation   Conversations[]
+
+  @@map("messages")
+}
+
+model Conversations {
+  id           Int       @id @default(autoincrement())
+  participants Users[]
+  messages     Message[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("conversations")
+}
+
+model VerifyOtpTemps {
+  id          Int      @id @default(autoincrement())
+  phonenumber String   @unique
+  otp         Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("verifyOtpTemps")
+}
+
+model Category {
+  id                   Int          @id @default(autoincrement())
+  category             String
+  point                Int          @default(0)
+  isLimit              Boolean      @default(false)
+  MaxPlayerLimit       Int          @default(0)
+  round                Int          @default(1)
+  roundPlayedByPlayers Int          @default(0)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  pointtable           PointTable[]
+
+  @@map("category")
+}
+
+model PointTable {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  categoryId   Int
+  point        Int      @default(0)
+  pendingPoint Int?
+  accepted     Boolean  @default(false)
+  image        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  category     Category @relation(fields: [categoryId], references: [id])
+  users        Users    @relation(fields: [userId], references: [id])
+
+  @@map("pointtable")
+}
+
+model AdminRoles {
+  id        Int      @id @default(autoincrement())
+  role      String   @unique
+  user      Users[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("adminroles")
+}

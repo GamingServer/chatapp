@@ -6,8 +6,14 @@ import Picker from "@emoji-mart/react";
 import emojiRegex from "emoji-regex";
 
 const RightMenu = ({ onBack }) => {
-  const { selectedUser, socket, setLastMsg, setSeenMessage, onlineUser } =
-    useSocketContext();
+  const {
+    changeRole,
+    selectedUser,
+    socket,
+    setLastMsg,
+    setSeenMessage,
+    onlineUser,
+  } = useSocketContext();
   const { getMsg } = useGetMsg();
   const { isAdmin, adminRole } = useAuthContext();
 
@@ -61,6 +67,10 @@ const RightMenu = ({ onBack }) => {
   );
 
   const handleAttachClick = () => setShowDrawer((prev) => !prev);
+
+  useEffect(() => {
+    // if()
+  }, [changeRole]);
 
   const handleFileChange = async (e, type) => {
     const file = e.target.files[0];
@@ -129,15 +139,15 @@ const RightMenu = ({ onBack }) => {
 
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const _id = entry.target.dataset.id;
-            const index = updateMessages.findIndex((msg) => msg._id === _id);
+            const id = entry.target.dataset.id;
+            const index = updateMessages.findIndex((msg) => msg.id === id);
             if (
               index !== -1 &&
               updateMessages[index].status !== "seen" &&
-              updateMessages[index].senderName !== "admin"
+              updateMessages[index].sender.username !== "admin"
             ) {
               updateMessages[index].status = "seen";
-              seenMessages.push({ _id: updateMessages[index]._id });
+              seenMessages.push({ id: updateMessages[index].id });
             }
           }
         });
@@ -177,7 +187,7 @@ const RightMenu = ({ onBack }) => {
 
   useEffect(() => {
     socket.on("receiveMessage", ({ message }) => {
-      if (message.senderName === selectedUser.name) {
+      if (message.sender.username === selectedUser.name) {
         setMessages((prevMessages) => [...prevMessages, message]);
       }
     });
@@ -197,7 +207,7 @@ const RightMenu = ({ onBack }) => {
     socket.on("seen-Message", (value) => {
       setMessages((prevMessages) =>
         prevMessages.map((msg) =>
-          value.includes(msg._id) ? { ...msg, status: "seen" } : msg
+          value.includes(msg.id) ? { ...msg, status: "seen" } : msg
         )
       );
     });
@@ -223,11 +233,12 @@ const RightMenu = ({ onBack }) => {
         }
       );
       const data = await res.json();
+      console.log(data);
       setNewmsg({ ...newmsg, message: "" });
       setLastMsg((prevMessages) =>
         prevMessages.map((msg) =>
-          selectedUser.name === msg.senderName ||
-          selectedUser.name === msg.receiverName
+          selectedUser.name === msg.sender.username ||
+          selectedUser.name === msg.sender.username
             ? { ...msg, message: data.message }
             : msg
         )
@@ -312,7 +323,7 @@ const RightMenu = ({ onBack }) => {
           if (showDateHeader) lastDate = messageDate;
 
           return (
-            <React.Fragment key={item._id}>
+            <React.Fragment key={item.id}>
               {showDateHeader && (
                 <div className="flex justify-center my-2">
                   <div className="bg-slate-400 rounded-md px-3 py-1 text-xs text-white">
@@ -321,17 +332,17 @@ const RightMenu = ({ onBack }) => {
                 </div>
               )}
               <div
-                data-id={item._id}
+                data-id={item.id}
                 className={`flex items-end min-w-[40%] gap-2 ${
-                  item.senderName === "admin"
+                  item.sender.username === "admin"
                     ? "self-end flex-row-reverse"
                     : "self-start"
                 }`}
               >
-                {item.senderName !== "admin" && imageUrl}
+                {item.sender.username !== "admin" && imageUrl}
                 <div
                   className={`${
-                    item.senderName === "admin"
+                    item.sender.username === "admin"
                       ? "bg-[#007bff] text-white"
                       : "bg-[#e4e6eb] text-black"
                   } rounded-[10px] px-3 py-2 max-w-[100%] min-w-[30%]`}
@@ -369,7 +380,7 @@ const RightMenu = ({ onBack }) => {
                     <time dateTime={item.createdAt}>
                       {formatTime(item.createdAt)}
                     </time>
-                    {item.senderName === "admin" && (
+                    {item.sender.username === "admin" && (
                       <span className="ml-1">
                         {item.status === "sent" && "✓"}
                         {item.status === "delivered" && "✓✓"}

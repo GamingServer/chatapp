@@ -22,7 +22,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
-const generateToken = async ({ userId }) => {
+const generateToken = async ({ userId ,role}) => {
   const permission = await Notification.requestPermission();
   if (permission !== "granted") {
     console.warn("Notification permission not granted.");
@@ -40,13 +40,21 @@ const generateToken = async ({ userId }) => {
     serviceWorkerRegistration: registration,
   });
 
-  if (token) {
+  if (token && role) {
+    await fetch("http://localhost:8080/api/user/getMessageToken", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, token, role:role }),
+    });
+  } else if(token){
     await fetch("http://localhost:8080/api/user/getMessageToken", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, token }),
     });
-  } else {
+  }
+  
+  else {
     throw new Error("Failed to get FCM token.");
   }
 };

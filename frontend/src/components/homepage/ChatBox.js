@@ -46,15 +46,15 @@ const ChatBox = ({ toggle }) => {
 
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const _id = entry.target.dataset.id;
-            const index = updateMessages.findIndex((msg) => msg._id === _id);
+            const id = entry.target.dataset.id;
+            const index = updateMessages.findIndex((msg) => msg.id === id);
             if (
               index !== -1 &&
               updateMessages[index].status !== "seen" &&
-              updateMessages[index].senderName === "admin"
+              updateMessages[index].sender.username === "admin"
             ) {
               updateMessages[index].status = "seen";
-              seenMessages.push({ _id: updateMessages[index]._id });
+              seenMessages.push({ id: updateMessages[index].id });
             }
           }
         });
@@ -124,7 +124,7 @@ const ChatBox = ({ toggle }) => {
       socket.on("seen-Message", (value) => {
         setMessages((prev) =>
           prev.map((msg) =>
-            value.includes(msg._id) ? { ...msg, status: "seen" } : msg
+            value.includes(msg.id) ? { ...msg, status: "seen" } : msg
           )
         );
       });
@@ -158,7 +158,7 @@ const ChatBox = ({ toggle }) => {
 
       setMessages((prev) =>
         prev.map((msg) =>
-          msg._id === item_id ? { ...msg, selectedChoice: messageToSend } : msg
+          msg.id === item_id ? { ...msg, selectedChoice: messageToSend } : msg
         )
       );
     } else {
@@ -215,7 +215,7 @@ const ChatBox = ({ toggle }) => {
         );
         const data = await res.json();
         setMessages((prev) =>
-          prev.map((msg) => (msg._id === data._id ? data : msg))
+          prev.map((msg) => (msg.id === data.id ? data : msg))
         );
       } else {
         const res = await fetch(
@@ -292,7 +292,7 @@ const ChatBox = ({ toggle }) => {
                 if (showDateHeader) lastDate = messageDate;
 
                 return (
-                  <React.Fragment key={item._id}>
+                  <React.Fragment key={item.id}>
                     {showDateHeader && (
                       <div className="flex justify-center my-2">
                         <div className="bg-slate-400 rounded-md px-3 py-1 text-xs text-white">
@@ -301,19 +301,19 @@ const ChatBox = ({ toggle }) => {
                       </div>
                     )}
                     <div
-                      data-id={item._id}
+                      data-id={item.id}
                       id="message"
                       className={`flex items-end min-w-[40%] gap-2 ${
-                        item.senderName !== "admin"
+                        item.sender.username !== "admin"
                           ? "self-end flex-row-reverse"
                           : "self-start"
                       }`}
                     >
-                      {item.senderName === "admin" && adminPic}
+                      {item.sender.username === "admin" && adminPic}
 
                       <div
                         className={`${
-                          item.senderName !== "admin"
+                          item.sender.username !== "admin"
                             ? "bg-[#007bff] text-white"
                             : "bg-[#e4e6eb] text-black"
                         } rounded-[10px] px-3 py-2 max-w-[100%] min-w-[30%]`}
@@ -387,7 +387,7 @@ const ChatBox = ({ toggle }) => {
                                     handleFileChange(
                                       e,
                                       "image",
-                                      item._id,
+                                      item.id,
                                       item.category
                                     )
                                   }
@@ -425,7 +425,7 @@ const ChatBox = ({ toggle }) => {
                                     ? "bg-blue-600 text-white"
                                     : "hover:bg-blue-600 hover:text-white bg-white text-black")
                                 }
-                                onClick={() => handleInput(choice, item._id)}
+                                onClick={() => handleInput(choice, item.id)}
                               >
                                 {choice}
                               </button>
@@ -437,7 +437,7 @@ const ChatBox = ({ toggle }) => {
 
                         <span className="text-[10px] block text-right whitespace-nowrap">
                           {formatTime(item.createdAt)}
-                          {item.senderName !== "admin" && (
+                          {item.sender.username !== "admin" && (
                             <span className="ml-1">
                               {item.status === "sent" && "✓"}
                               {item.status === "delivered" && "✓✓"}

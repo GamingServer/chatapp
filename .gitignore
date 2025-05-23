@@ -8,5 +8,5 @@
 
 /frontend/src/notification
 /backend/firebase/chatapp-a8048-firebase-adminsdk-fbsvc-374beff29f.json
-
+/backend/prisma/migrations
 .env

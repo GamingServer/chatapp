@@ -19,11 +19,12 @@ import { onMessage } from "firebase/messaging";
 const App = () => {
   const { authUser, isAdmin } = useAuthContext();
   const token = Cookies.get("admin");
+  const role = Cookies.get("role");
   
   useEffect(() => {
     if (!authUser) return;
 
-    generateToken({ userId: authUser._id });
+    generateToken({ userId: authUser._id ,role:role});
 
     onMessage(messaging, (payload) => {
       // toast(payload.notification?.body || "New notification", {
@@ -66,7 +67,7 @@ const App = () => {
 
   useEffect(() => {
     if (!isAdmin) return;
-    generateToken({ userId: "admin" });
+    generateToken({ userId: "admin" ,role});
 
     onMessage(messaging, (payload) => {
       // toast(payload.notification?.body || "New notification",{

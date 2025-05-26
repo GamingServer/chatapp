@@ -213,53 +213,54 @@ const saveImage = async (req, res) => {
             },
           },
         });
+      } else {
+        // await pointCategory.findOneAndUpdate(
+        //   { category: categoryData.category },
+        //   {
+        //     $inc: { roundPlayedByPlayers: 1 },
+        //   }
+        // );
+        await prisma.Category.update({
+          where: {
+            category: categoryData.category,
+          },
+          data: {
+            roundPlayedByPlayers: {
+              increment: 1,
+            },
+          },
+        });
+        // point = new pointTable({
+        //   playerName: senderName,
+        //   category: category,
+        //   image: fileUrl,
+        //   pendingPoint: 0,
+        //   accepted: true,
+        //   point: 0,
+        // });
+        point = await prisma.PointTable.create({
+          data: {
+            userId: senderId.id,
+            categoryId: categoryData.id,
+            image: fileUrl,
+            pendingPoint: 0,
+            accepted: true,
+            point: 0,
+          },
+          include: {
+            users: {
+              select: {
+                username: true,
+              },
+            },
+            category: {
+              select: {
+                category: true,
+              },
+            },
+          },
+        });
       }
-      // await pointCategory.findOneAndUpdate(
-      //   { category: categoryData.category },
-      //   {
-      //     $inc: { roundPlayedByPlayers: 1 },
-      //   }
-      // );
-      await prisma.Category.update({
-        where: {
-          category: categoryData.category,
-        },
-        date: {
-          roundPlayedByPlayers: {
-            increment: 1,
-          },
-        },
-      });
-      // point = new pointTable({
-      //   playerName: senderName,
-      //   category: category,
-      //   image: fileUrl,
-      //   pendingPoint: 0,
-      //   accepted: true,
-      //   point: 0,
-      // });
-      point = await prisma.PointTable.create({
-        data: {
-          userId: senderId.id,
-          categoryId: categoryData.id,
-          image: fileUrl,
-          pendingPoint: 0,
-          accepted: true,
-          point: 0,
-        },
-        include: {
-          users: {
-            select: {
-              username: true,
-            },
-          },
-          category: {
-            select: {
-              category: true,
-            },
-          },
-        },
-      });
     } else if (!categoryData.isLimit) {
       // point = new pointTable({
       //   playerName: senderName,
@@ -359,36 +360,84 @@ const aprovePoint = async (req, res) => {
               category: true,
             },
           },
-        }
+        },
       });
-      await prisma.Category.update({
+    } else {
+      // const db = await pointTable.findById(id);
+      const db = await prisma.PointTable.findUnique({
+        where: {
+          id: parseInt(id),
+        },
+      });
+      // console.log("db:", db);
+      // const categoryData = await pointCategory.findOne({ category: db.category });
+      const categoryData = await prisma.Category.findUnique({
         where: {
           id: db.categoryId,
         },
-        data: {
-          roundPlayedByPlayers: {
-            increment: 1,
-          },
-        },
       });
-      return res.json(db);
-    }
-    // const db = await pointTable.findById(id);
-    const db = await prisma.PointTable.findUnique({
-      where: {
-        id: parseInt(id),
-      },
-    });
-    // console.log("db:", db);
-    // const categoryData = await pointCategory.findOne({ category: db.category });
-    const categoryData = await prisma.Category.findUnique({
-      where: {
-        id: db.categoryId,
-      },
-    });
 
-    if (categoryData.isLimit) {
-      if (categoryData.roundPlayedByPlayers < categoryData.MaxPlayerLimit) {
+      if (categoryData.isLimit) {
+        if (categoryData.roundPlayedByPlayers < categoryData.MaxPlayerLimit) {
+          // await pointTable.findByIdAndUpdate(
+          //   id,
+          //   { accepted: true, point: categoryData.point, pendingPoint: 0 },
+          //   { new: true }
+          // );
+          await prisma.PointTable.update({
+            where: {
+              id: parseInt(id),
+            },
+            data: {
+              accepted: true,
+              point: categoryData.point,
+              pendingPoint: 0,
+            },
+          });
+          await prisma.Category.update({
+            where: {
+              id: db.categoryId,
+            },
+            data: {
+              roundPlayedByPlayers: {
+                increment: 1,
+              },
+            },
+          });
+        } else {
+          await prisma.PointTable.update({
+            where: {
+              id: parseInt(id),
+            },
+            data: {
+              accepted: true,
+              point: 0,
+              pendingPoint: 0,
+            },
+          });
+          // await pointCategory.findOneAndUpdate(
+          //   { category: db.category },
+          //   {
+          //     $inc: { roundPlayedByPlayers: 1 },
+          //   }
+          // );
+          await prisma.Category.update({
+            where: {
+              id: db.categoryId,
+            },
+            data: {
+              roundPlayedByPlayers: {
+                increment: 1,
+              },
+            },
+          });
+        }
+        // await pointTable.findByIdAndUpdate(
+        //   id,
+        //   { accepted: true, point: 0, pendingPoint: 0 },
+        //   { new: true }
+        // );
+      } else {
         // await pointTable.findByIdAndUpdate(
         //   id,
         //   { accepted: true, point: categoryData.point, pendingPoint: 0 },
@@ -405,54 +454,8 @@ const aprovePoint = async (req, res) => {
           },
         });
       }
-      // await pointTable.findByIdAndUpdate(
-      //   id,
-      //   { accepted: true, point: 0, pendingPoint: 0 },
-      //   { new: true }
-      // );
-      await prisma.PointTable.update({
-        where: {
-          id: parseInt(id),
-        },
-        data: {
-          accepted: true,
-          point: 0,
-          pendingPoint: 0,
-        },
-      });
-      // await pointCategory.findOneAndUpdate(
-      //   { category: db.category },
-      //   {
-      //     $inc: { roundPlayedByPlayers: 1 },
-      //   }
-      // );
-      await prisma.Category.update({
-        where: {
-          category: db.category,
-        },
-        data: {
-          roundPlayedByPlayers: {
-            increment: 1,
-          },
-        },
-      });
-    } else {
-      // await pointTable.findByIdAndUpdate(
-      //   id,
-      //   { accepted: true, point: categoryData.point, pendingPoint: 0 },
-      //   { new: true }
-      // );
-      await prisma.PointTable.update({
-        where: {
-          id: parseInt(id),
-        },
-        data: {
-          accepted: true,
-          point: categoryData.point,
-          pendingPoint: 0,
-        },
-      });
     }
+
     res.json({ message: "SuccessFully Point Added" });
   } catch (error) {
     console.log("error in aprove point", error);
@@ -471,45 +474,53 @@ const categoryData = async (req, res) => {
         },
       },
     });
-    let finalData;
-
-    if (categoryData.length > 0) {
-      const filtered = categoryData.filter(
-        (item) => item.category === category && item.accepted
-      );
-      const playerPoints = {};
-      for (const item of filtered) {
-        playerPoints[item.playerName] =
-          (playerPoints[item.playerName] || 0) + item.point;
-      }
-      const totalPlayers = Object.keys(playerPoints).length;
-
-      const totalPoints = Object.values(playerPoints).reduce(
-        (sum, val) => sum + val,
-        0
-      );
-      const avgPoints = totalPoints / totalPlayers;
-
-      let highest = { player: null, point: -Infinity };
-      let lowest = { player: null, point: Infinity };
-
-      for (const [player, point] of Object.entries(playerPoints)) {
-        if (point > highest.point) highest = { player, point };
-        if (point < lowest.point) lowest = { player, point };
-      }
-
-      finalData = {
-        totalPlayers,
-        totalPoints,
-        avgPoints,
-        highest,
-        lowest,
-      };
-      res.status(200).json(finalData);
-    } else {
-      finalData = { message: "No Data Found" };
-      res.status(404).json(finalData);
+    if (categoryData.length === 0) {
+      return res.status(404).json({ message: "No Data Found" });
     }
+
+    const filtered = categoryData.filter((item) => item.accepted);
+
+    const playerPoints = {};
+    for (const item of filtered) {
+      playerPoints[item.userId] = (playerPoints[item.userId] || 0) + item.point;
+    }
+
+    const totalPlayers = Object.keys(playerPoints).length;
+    const totalPoints = Object.values(playerPoints).reduce(
+      (sum, val) => sum + val,
+      0
+    );
+    const avgPoints = totalPoints / totalPlayers;
+
+    let highest = { player: null, point: -Infinity };
+    let lowest = { player: null, point: Infinity };
+
+    for (const [player, point] of Object.entries(playerPoints)) {
+      if (point > highest.point) {
+        playername = await prisma.Users.findUnique({
+          where: { id: parseInt(player) },
+        });
+        highest = { player: playername.username, point };
+      }
+      if (point < lowest.point) {
+        playername = await prisma.Users.findUnique({
+          where: { id: parseInt(player) },
+        });
+
+        lowest = { player: playername.username, point };
+      }
+    }
+
+    const finalData = {
+      totalPlayers,
+      totalPoints,
+      avgPoints,
+      highest,
+      lowest,
+    };
+    console.log(finalData);
+
+    res.status(200).json(finalData);
   } catch (error) {
     console.log("error in categoryData", error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -538,16 +549,19 @@ const transformData = (categories, playerData) => {
     },
   }));
 
-  // Group player data by category and playerName
+  // Group player data by category and username
   const groupedData = {};
-  playerData.forEach(({ category, point, playerName }) => {
-    if (!groupedData[category]) groupedData[category] = {};
+  playerData.forEach(({ category, point, users }) => {
+    const catName = category.category;
+    const playerName = users.username;
 
-    if (!groupedData[category][playerName]) {
-      groupedData[category][playerName] = 0;
+    if (!groupedData[catName]) groupedData[catName] = {};
+
+    if (!groupedData[catName][playerName]) {
+      groupedData[catName][playerName] = 0;
     }
 
-    groupedData[category][playerName] += point;
+    groupedData[catName][playerName] += point;
   });
 
   // Process each category
@@ -593,7 +607,20 @@ const transformData = (categories, playerData) => {
 const getAllcategoryData = async (req, res) => {
   try {
     // const playerData = await pointTable.find();
-    const playerData = await prisma.PointTable.findMany();
+    const playerData = await prisma.PointTable.findMany({
+      include: {
+        users: {
+          select: {
+            username: true,
+          },
+        },
+        category: {
+          select: {
+            category: true,
+          },
+        },
+      },
+    });
     // const category = await pointCategory.find({}, { category: 1 });
     const category = await prisma.Category.findMany({
       select: {
@@ -601,6 +628,7 @@ const getAllcategoryData = async (req, res) => {
       },
     });
     const transformedData = transformData(category, playerData);
+    // console.log(transformedData);
     res.json(transformedData);
   } catch (e) {
     console.log("error in getAllcategoryData", e);

@@ -20,6 +20,8 @@ const PlayerState = () => {
         .then((res) => res.json())
         .then((data) => {
           setPendingPoints(data.pendingPoint);
+          console.log(data.pendingPoint);
+          
         });
       socket.on('aproveCategory', (data) => {
         if (data.accepted) {
@@ -91,9 +93,9 @@ const PlayerState = () => {
               <tbody>
                 {approveList.length > 0 ? (
                   approveList.map((item) => (
-                    <tr key={item._id}>
-                      <td className="border border-gray-400 px-4 py-2 text-center w-[20%]">{item.playerName}</td>
-                      <td className="border border-gray-400 px-4 py-2 text-center w-[30%]">{item.category}</td>
+                    <tr key={item.id}>
+                      <td className="border border-gray-400 px-4 py-2 text-center w-[20%]">{item.users.username}</td>
+                      <td className="border border-gray-400 px-4 py-2 text-center w-[30%]">{item.category.category}</td>
                       <td className="border border-gray-400 px-4 py-2 text-center w-[15%]">{item.point}</td>
                       <td className="border border-gray-400 px-4 py-2 text-center w-[15%]">
                         {item.accepted && item.point > 0 ? 'Yes' : 'No'}
@@ -134,9 +136,9 @@ const PlayerState = () => {
                 {pendingpoints.length > 0 ? (
                   pendingpoints.map((item) =>
                     item.accepted === false ? (
-                      <tr key={item._id}>
-                        <td className="border border-gray-400 px-4 py-2 text-center w-[20%]">{item.playerName}</td>
-                        <td className="border border-gray-400 px-4 py-2 text-center w-[30%]">{item.category}</td>
+                      <tr key={item.id}>
+                        <td className="border border-gray-400 px-4 py-2 text-center w-[20%]">{item.users.username}</td>
+                        <td className="border border-gray-400 px-4 py-2 text-center w-[30%]">{item.category.category}</td>
                         <td className="border border-gray-400 px-4 py-2 text-center w-[15%]">{item.pendingPoint}</td>
                         <td className="border border-gray-400 px-4 py-2 text-center w-[15%]">
                           <div className="flex flex-row gap-3 justify-center items-center">
@@ -149,13 +151,13 @@ const PlayerState = () => {
                                     headers: {
                                       'Content-Type': 'application/json',
                                     },
-                                    body: JSON.stringify({ id: item._id }),
+                                    body: JSON.stringify({ id: item.id }),
                                   });
                                   const data = await res.json();
                                   if (!res.ok) {
                                     throw new Error(data.message || 'Failed to approve point');
                                   }
-                                  setPendingPoints((prev) => prev.filter((msg) => msg._id !== item._id));
+                                  setPendingPoints((prev) => prev.filter((msg) => msg.id !== item.id));
                                   const updatedItem = {
                                     ...item,
                                     accepted: true,
@@ -181,10 +183,10 @@ const PlayerState = () => {
                                     headers: {
                                       'Content-Type': 'application/json',
                                     },
-                                    body: JSON.stringify({ id: item._id, point: 0 }),
+                                    body: JSON.stringify({ id: item.id, point: 0 }),
                                   });
                                   const data = await res.json();
-                                  setPendingPoints((prev) => prev.filter((msg) => msg._id !== item._id));
+                                  setPendingPoints((prev) => prev.filter((msg) => msg.id !== item.id));
                                   const updatedItem = {
                                     ...item,
                                     accepted: true,
@@ -251,7 +253,7 @@ const PlayerState = () => {
                 <tbody>
                   {categoryData.length > 0 ? (
                     categoryData.map((item) => (
-                      <tr key={item._id}>
+                      <tr key={item.id}>
                         <td className="border border-gray-400 px-4 py-2 text-center w-[20%]">{item.category}</td>
                         <td className="border border-gray-400 px-4 py-2 text-center w-[20%]">{item.status.totalPlayers}</td>
                         <td className="border border-gray-400 px-4 py-2 text-center w-[20%]">{item.status.totalPoints}</td>

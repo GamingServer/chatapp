@@ -138,6 +138,7 @@ const ChatBox = ({ toggle }) => {
   }, [socket, authUser?.username]);
 
   const handleInput = async (customMsg, item_id) => {
+    console.log(item_id)
     const messageToSend = customMsg || newmsg.message;
 
     if (!messageToSend.trim()) {
@@ -214,6 +215,7 @@ const ChatBox = ({ toggle }) => {
           }
         );
         const data = await res.json();
+        console.log(data);
         setMessages((prev) =>
           prev.map((msg) => (msg.id === data.id ? data : msg))
         );

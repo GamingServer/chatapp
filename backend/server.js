@@ -53,7 +53,7 @@ app.get("/", (req, res) => {
 });
 
 server.listen(PORT, async () => {
-  await connectToMongodb();
+  // await connectToMongodb();
   await initFirebase();
   console.log(`Server is running on port ${PORT}`);
 });

@@ -56,9 +56,9 @@ const Category = () => {
       },
     })
 
-    setCategoryList(prev => prev.filter(item => item._id !== id));
+    setCategoryList(prev => prev.filter(item => item.id !== id));
     setShowDeleteModal(false);
-    if (selectedCategory && selectedCategory._id === id) {
+    if (selectedCategory && selectedCategory.id === id) {
       setSelectedCategory(null);
     }
   };
@@ -80,7 +80,7 @@ const Category = () => {
 
   const handleEdit = async () => {
 
-    await fetch('http://localhost:8080/api/category/edit/' + currentEdit._id, {
+    await fetch('http://localhost:8080/api/category/edit/' + currentEdit.id, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -90,11 +90,11 @@ const Category = () => {
 
     setCategoryList(prev =>
       prev.map(item =>
-        item._id === currentEdit._id ? { ...item, category: editValue.category } : item
+        item.id === currentEdit.id ? { ...item, category: editValue.category } : item
       )
     );
     setShowEditModal(false);
-    if (selectedCategory && selectedCategory._id === currentEdit._id) {
+    if (selectedCategory && selectedCategory.id === currentEdit.id) {
       console.log(selectedCategory)
       setSelectedCategory({ ...currentEdit, category: editValue.category, point: editValue.point });
     }
@@ -115,7 +115,7 @@ const Category = () => {
         <div className="flex flex-col overflow-y-auto h-[90%]">
           {categoryList.map((item) => (
             <div
-              key={item._id}
+              key={item.id}
               className="m-2 border-[2px] border-black p-3 rounded-lg cursor-pointer hover:bg-gray-100"
               onClick={() => setSelectedCategory(item)}
             >
@@ -183,7 +183,7 @@ const Category = () => {
             <p className="mb-4">Are you sure you want to delete this category?</p>
             <div className="flex justify-around">
               <button
-                onClick={() => handleDelete(currentEdit._id)}
+                onClick={() => handleDelete(currentEdit.id)}
                 className="bg-red-500 text-white px-4 py-2 rounded"
               >
                 Delete
